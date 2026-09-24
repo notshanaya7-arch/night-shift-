@@ -1,89 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIGHT SHIFT: 3:17 AM</title>
 
-    <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
-
-    <title>NIGHT SHIFT: 3:17 AM</title>
-
-    <link rel="stylesheet" href="style.css">
-
-    <!-- THREE.JS IMPORT MAP -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-        }
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
     }
-    </script>
-
+  }
+  </script>
 </head>
-
 
 <body>
 
 <div id="game">
 
-    <!-- 3D GAME -->
-    <canvas id="gameCanvas"></canvas>
+  <canvas id="gameCanvas"></canvas>
 
+  <!-- HUD -->
+  <div id="hud">
 
-    <!-- HUD -->
-    <div id="hud">
-
-        <div id="mission">
-
-            <div class="label">
-                NIGHT SHIFT
-            </div>
-
-            <div id="time">
-                11:00 PM
-            </div>
-
-        </div>
-
-
-        <div id="battery">
-
-            FLASHLIGHT
-
-            <span id="batteryValue">
-                100%
-            </span>
-
-        </div>
-
-
-        <div id="crosshair">
-            +
-        </div>
-
-
-        <div id="interaction"></div>
-
-
-        <div id="objective">
-
-            <span>
-                OBJECTIVE
-            </span>
-
-            <p id="objectiveText">
-                Check the electrical panel.
-            </p>
-
-        </div>
-
+    <div id="mission">
+      <div class="label">NIGHT SHIFT</div>
+      <div id="time">11:00 PM</div>
     </div>
 
+    <div id="battery">
+      FLASHLIGHT <span id="batteryValue">100%</span>
+    </div>
 
-    <!-- START SCREEN -->
+    <div id="crosshair">+</div>
 
-    <div id="
+    <div id="interaction"></div>
+
+    <div id="objective">
+      <span>OBJECTIVE</span>
+      <p id="objectiveText">Find the maintenance key.</p>
+    </div>
+
+  </div>
+
+  <!-- START -->
+ 
