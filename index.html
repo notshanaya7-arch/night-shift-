@@ -1,473 +1,429 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>NIGHT SHIFT: 3:17 AM</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            color: white;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+        }
+
+        /* ================= START SCREEN ================= */
+
+        #startScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            background:
+                radial-gradient(
+                    circle at center,
+                    rgba(35, 35, 35, 0.35),
+                    rgba(0, 0, 0, 0.98) 75%
+                );
+        }
+
+        .startBox {
+            width: min(90%, 600px);
+            text-align: center;
+            padding: 35px;
+        }
+
+        .smallTitle {
+            color: #777;
+            font-size: 13px;
+            letter-spacing: 6px;
+            margin-bottom: 15px;
+        }
+
+        .gameTitle {
+            font-size: clamp(42px, 9vw, 82px);
+            font-weight: 900;
+            letter-spacing: 8px;
+            margin: 0;
+
+            text-shadow:
+                0 0 10px rgba(255,255,255,.15),
+                0 0 30px rgba(255,0,0,.12);
+        }
+
+        .timeTitle {
+            color: #b40000;
+            font-size: clamp(20px, 5vw, 34px);
+            letter-spacing: 8px;
+            margin-top: 8px;
+            text-shadow: 0 0 15px #700;
+        }
+
+        .line {
+            width: 100%;
+            height: 1px;
+            background: #333;
+            margin: 35px 0;
+        }
+
+        .employee {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .employee strong {
+            color: white;
+        }
+
+        #startBtn {
+            margin-top: 35px;
+
+            width: 230px;
+            height: 60px;
+
+            border: 1px solid #777;
+            background: rgba(10, 10, 10, .9);
+            color: white;
+
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 4px;
+
+            cursor: pointer;
+
+            transition:
+                background .2s,
+                border-color .2s,
+                transform .2s,
+                box-shadow .2s;
+        }
+
+        #startBtn:hover {
+            background: #1b1b1b;
+            border-color: white;
+            box-shadow: 0 0 25px rgba(255,255,255,.15);
+            transform: scale(1.03);
+        }
+
+        #startBtn:active {
+            transform: scale(.97);
+        }
+
+        .warning {
+            margin-top: 25px;
+            color: #555;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        /* ================= HUD ================= */
+
+        #hud {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+            display: none;
+        }
+
+        #mission {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+
+            font-size: 13px;
+            color: #aaa;
+            letter-spacing: 2px;
+        }
+
+        #objective {
+            margin-top: 8px;
+            color: white;
+            letter-spacing: 1px;
+        }
 
-<title>NIGHT SHIFT: 3:17 AM</title>
+        #time {
+            position: absolute;
+            top: 25px;
+            right: 25px;
 
-<style>
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+        #battery {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
 
-html,
-body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-    font-family: Arial, sans-serif;
-    color: white;
-}
+            font-size: 13px;
+            color: #aaa;
+            letter-spacing: 2px;
+        }
 
-#game {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
+        #crosshair {
+            position: absolute;
+            left: 50%;
+            top: 50%;
 
-#gameCanvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-}
+            width: 6px;
+            height: 6px;
 
-/* =========================
-   START SCREEN
-========================= */
+            margin-left: -3px;
+            margin-top: -3px;
 
-#startScreen {
+            border-radius: 50%;
+            background: white;
 
-    position: absolute;
+            box-shadow: 0 0 5px white;
+        }
 
-    inset: 0;
+        #interaction {
+            position: absolute;
+            left: 50%;
+            bottom: 18%;
 
-    z-index: 999;
+            transform: translateX(-50%);
 
-    display: flex;
+            color: white;
+            font-size: 13px;
+            letter-spacing: 2px;
 
-    flex-direction: column;
+            text-shadow: 0 0 5px black;
+        }
 
-    justify-content: center;
+        /* ================= PAUSE ================= */
 
-    align-items: center;
+        #pauseScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
 
-    text-align: center;
+            display: none;
+            justify-content: center;
+            align-items: center;
 
-    background:
-        radial-gradient(
-            circle,
-            #20242b 0%,
-            #08090b 45%,
-            #000 100%
-        );
-}
+            background: rgba(0,0,0,.85);
+        }
 
-#startScreen h1 {
+        .pauseBox {
+            text-align: center;
+        }
 
-    font-size: 70px;
+        .pauseBox h1 {
+            font-size: 42px;
+            letter-spacing: 8px;
+        }
 
-    letter-spacing: 12px;
+        .pauseBox p {
+            color: #888;
+            letter-spacing: 2px;
+        }
 
-    margin-bottom: 5px;
+        /* ================= EVENT MESSAGE ================= */
 
-    text-shadow:
-        0 0 15px #777,
-        0 0 40px #222;
+        #eventMessage {
+            position: fixed;
+            left: 50%;
+            top: 25%;
 
-}
+            transform: translateX(-50%);
 
-#startScreen h2 {
+            z-index: 500;
 
-    font-size: 32px;
+            display: none;
 
-    letter-spacing: 10px;
+            width: min(90%, 600px);
 
-    color: #999;
+            text-align: center;
 
-}
+            color: white;
 
-.warning {
+            font-size: 20px;
+            letter-spacing: 3px;
 
-    margin-top: 30px;
+            text-shadow:
+                0 0 10px black,
+                0 0 20px black;
+        }
 
-    color: #aaa;
+        /* ================= ERROR ================= */
 
-    letter-spacing: 5px;
+        #errorScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
 
-    font-size: 12px;
+            display: none;
 
-}
+            justify-content: center;
+            align-items: center;
 
-.employee {
+            background: #000;
+            color: #ff3333;
 
-    margin-top: 25px;
+            text-align: center;
+            padding: 30px;
+        }
 
-    padding: 15px 25px;
+        /* ================= MOBILE ================= */
 
-    border-top: 1px solid #444;
+        @media (max-width: 600px) {
 
-    border-bottom: 1px solid #444;
+            .gameTitle {
+                letter-spacing: 4px;
+            }
 
-    color: #999;
+            .timeTitle {
+                letter-spacing: 5px;
+            }
 
-    font-size: 12px;
+            #mission {
+                left: 15px;
+                top: 15px;
+            }
 
-    line-height: 1.8;
+            #time {
+                right: 15px;
+                top: 15px;
+                font-size: 17px;
+            }
 
-}
+            #battery {
+                right: 15px;
+                bottom: 15px;
+            }
 
-#startButton {
+            #startBtn {
+                width: 210px;
+            }
+        }
 
-    margin-top: 35px;
+        .hidden {
+            display: none !important;
+        }
+    </style>
 
-    padding: 15px 40px;
+    <!-- THREE.JS IMPORT MAP -->
 
-    background: transparent;
-
-    color: white;
-
-    border: 1px solid #aaa;
-
-    font-size: 14px;
-
-    letter-spacing: 4px;
-
-    cursor: pointer;
-
-}
-
-#startButton:hover {
-
-    background: rgba(255,255,255,0.12);
-
-    border-color: white;
-
-}
-
-.controls {
-
-    margin-top: 25px;
-
-    color: #666;
-
-    font-size: 11px;
-
-    line-height: 1.8;
-
-}
-
-
-/* =========================
-   HUD
-========================= */
-
-#hud {
-
-    position: absolute;
-
-    inset: 0;
-
-    z-index: 10;
-
-    pointer-events: none;
-
-}
-
-#mission {
-
-    position: absolute;
-
-    top: 25px;
-
-    left: 25px;
-
-    background: rgba(0,0,0,0.55);
-
-    padding: 12px 16px;
-
-    border-left: 3px solid #aaa;
-
-}
-
-#mission .label {
-
-    font-size: 10px;
-
-    color: #999;
-
-    letter-spacing: 2px;
-
-}
-
-#time {
-
-    margin-top: 5px;
-
-    font-size: 22px;
-
-}
-
-#battery {
-
-    position: absolute;
-
-    top: 25px;
-
-    right: 25px;
-
-    background: rgba(0,0,0,0.55);
-
-    padding: 12px 16px;
-
-    font-size: 11px;
-
-}
-
-#crosshair {
-
-    position: absolute;
-
-    left: 50%;
-
-    top: 50%;
-
-    transform: translate(-50%, -50%);
-
-    font-size: 20px;
-
-}
-
-#interaction {
-
-    position: absolute;
-
-    left: 50%;
-
-    top: 55%;
-
-    transform: translateX(-50%);
-
-    font-size: 13px;
-
-    text-align: center;
-
-}
-
-#objective {
-
-    position: absolute;
-
-    left: 25px;
-
-    bottom: 25px;
-
-    width: 300px;
-
-    padding: 14px;
-
-    background: rgba(0,0,0,0.6);
-
-    border-left: 3px solid #888;
-
-}
-
-#objective span {
-
-    font-size: 10px;
-
-    color: #888;
-
-    letter-spacing: 2px;
-
-}
-
-#objective p {
-
-    margin-top: 6px;
-
-    font-size: 14px;
-
-}
-
-
-/* =========================
-   PAUSE
-========================= */
-
-#pauseScreen {
-
-    position: absolute;
-
-    inset: 0;
-
-    z-index: 500;
-
-    display: none;
-
-    flex-direction: column;
-
-    justify-content: center;
-
-    align-items: center;
-
-    background: rgba(0,0,0,0.9);
-
-}
-
-#pauseScreen button {
-
-    margin-top: 15px;
-
-    padding: 12px 30px;
-
-    background: transparent;
-
-    color: white;
-
-    border: 1px solid #777;
-
-}
-
-
-/* =========================
-   EVENTS
-========================= */
-
-#eventMessage {
-
-    position: absolute;
-
-    inset: 0;
-
-    z-index: 100;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    pointer-events: none;
-
-    opacity: 0;
-
-}
-
-#eventText {
-
-    text-align: center;
-
-    white-space: pre-line;
-
-    font-size: 18px;
-
-    letter-spacing: 3px;
-
-    line-height: 1.7;
-
-    text-shadow: 0 0 15px #000;
-
-}
-
-</style>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+    }
+    </script>
 </head>
 
 <body>
 
-<div id="game">
+    <!-- ================= 3D GAME ================= -->
 
     <canvas id="gameCanvas"></canvas>
 
 
-    <!-- START SCREEN -->
+    <!-- ================= START SCREEN ================= -->
 
     <div id="startScreen">
 
-        <h1>NIGHT SHIFT</h1>
+        <div class="startBox">
 
-        <h2>3:17 AM</h2>
+            <div class="smallTitle">
+                NIGHT MAINTENANCE SYSTEM
+            </div>
 
-        <div class="warning">
-            NIGHT MAINTENANCE SHIFT
-        </div>
+            <h1 class="gameTitle">
+                NIGHT SHIFT
+            </h1>
 
-        <div class="employee">
+            <div class="timeTitle">
+                3:17 AM
+            </div>
 
-            EMPLOYEE: YASH<br>
-            SHIFT: 11:00 PM — 6:00 AM<br>
-            LOCATION: PLATFORM 2<br>
-            STATUS: TEMPORARY WORKER
+            <div class="line"></div>
 
-        </div>
+            <div class="employee">
+                EMPLOYEE: <strong>YASH</strong><br>
+                POSITION: NIGHT MAINTENANCE<br>
+                SHIFT: 11:00 PM — 6:00 AM<br>
+                LOCATION: ABANDONED METRO STATION
+            </div>
 
-        <button id="startButton">
-            START SHIFT
-        </button>
+            <button id="startBtn" type="button">
+                START SHIFT
+            </button>
 
-        <div class="controls">
-
-            WASD — MOVE<br>
-            SHIFT — SPRINT<br>
-            F — FLASHLIGHT<br>
-            E — INTERACT<br>
-            ESC — PAUSE
+            <div class="warning">
+                HEADPHONES RECOMMENDED
+            </div>
 
         </div>
 
     </div>
 
 
-    <!-- HUD -->
+    <!-- ================= HUD ================= -->
 
     <div id="hud">
 
         <div id="mission">
-
-            <div class="label">
-                NIGHT SHIFT
+            NIGHT SHIFT
+            <div id="objective">
+                Check the electrical panels.
             </div>
-
-            <div id="time">
-                11:00 PM
-            </div>
-
         </div>
 
-
-        <div id="battery">
-
-            FLASHLIGHT
-            <span id="batteryValue">
-                100%
-            </span>
-
+        <div id="time">
+            11:00 PM
         </div>
 
-
-        <div id="crosshair">
-            +
-        </div>
-
+        <div id="crosshair"></div>
 
         <div id="interaction"></div>
 
+        <div id="battery">
+            FLASHLIGHT: 100%
+        </div>
 
-        <div id="objective">
+    </div>
 
-            <span>
-                OBJECTIVE
-            </span>
 
-            <p id="objectiveText">
-                Find the maintenance key.
+    <!-- ================= PAUSE ================= -->
+
+    <div id="pauseScreen">
+
+        <div class="pauseBox">
+
+            <h1>SHIFT PAUSED</h1>
+
+            <p>
+                CLICK TO RETURN
             </p>
 
         </div>
@@ -475,37 +431,74 @@ body {
     </div>
 
 
-    <!-- PAUSE -->
+    <!-- ================= EVENT MESSAGE ================= -->
 
-    <div id="pauseScreen">
-
-        <h2>
-            SHIFT PAUSED
-        </h2>
-
-        <button id="resumeButton">
-            RESUME
-        </button>
-
-        <button id="restartButton">
-            RESTART SHIFT
-        </button>
-
-    </div>
+    <div id="eventMessage"></div>
 
 
-    <!-- EVENT -->
+    <!-- ================= ERROR ================= -->
 
-    <div id="eventMessage">
+    <div id="errorScreen">
 
-        <div id="eventText"></div>
+        <div>
+            <h1>GAME ERROR</h1>
+
+            <p>
+                Something went wrong while loading NIGHT SHIFT.
+            </p>
+
+            <p id="errorText"></p>
+        </div>
 
     </div>
 
-</div>
+
+    <!-- ================================================= -->
+    <!-- START SHIFT BUTTON                                -->
+    <!-- ================================================= -->
+
+    <script>
+        const startButton = document.getElementById("startBtn");
+        const startScreen = document.getElementById("startScreen");
+        const hud = document.getElementById("hud");
+
+        startButton.addEventListener("click", function () {
+
+            console.log("START SHIFT clicked");
+
+            /* Hide menu */
+            startScreen.style.display = "none";
+
+            /* Show HUD */
+            hud.style.display = "block";
+
+            /* Tell game.js */
+            window.dispatchEvent(
+                new Event("startShift")
+            );
+
+        });
+    </script>
 
 
-<script type="module" src="game.js"></script>
+    <!-- ================================================= -->
+    <!-- GAME JAVASCRIPT                                   -->
+    <!-- ================================================= -->
+
+    <script type="module" src="game.js"></script>
+
+
+    <!-- ================================================= -->
+    <!-- ERROR HANDLER                                     -->
+    <!-- ================================================= -->
+
+    <script>
+        window.addEventListener("error", function(event) {
+
+            console.error(event.error || event.message);
+
+        });
+    </script>
 
 </body>
 </html>
