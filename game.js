@@ -1,463 +1,532 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/PointerLockControls.js";
 
-/* =========================================
-   BASIC SETUP
-========================================= */
-
 const canvas = document.getElementById("gameCanvas");
 
 const scene = new THREE.Scene();
-
-scene.background = new THREE.Color(0x020202);
-
-scene.fog = new THREE.Fog(
-    0x020202,
-    5,
-    45
-);
+scene.background = new THREE.Color(0x050608);
+scene.fog = new THREE.FogExp2(0x050608, 0.035);
 
 
-/* =========================================
+/* =========================
    CAMERA
-========================================= */
+========================= */
 
 const camera = new THREE.PerspectiveCamera(
     75,
-    window.innerWidth / window.innerHeight,
+    innerWidth / innerHeight,
     0.1,
-    100
+    1000
 );
 
-camera.position.set(
-    0,
-    1.7,
-    8
-);
+camera.position.set(0, 1.7, 12);
 
 
-/* =========================================
+/* =========================
    RENDERER
-========================================= */
+========================= */
 
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
+    canvas,
     antialias: true
 });
 
-renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-);
-
-renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, 2)
-);
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 
-/* =========================================
+/* =========================
    LIGHTING
-========================================= */
+========================= */
 
-const ambientLight = new THREE.AmbientLight(
-    0x666666,
-    0.35
+const ambient = new THREE.AmbientLight(
+    0x6b7280,
+    0.18
 );
 
-scene.add(ambientLight);
+scene.add(ambient);
 
 
-/* =========================================
-   FLASHLIGHT
-========================================= */
+/* =========================
+   MATERIALS
+========================= */
 
-const flashlight = new THREE.SpotLight(
-    0xffffff,
-    8,
-    30,
-    Math.PI / 7,
-    0.5,
-    1
-);
-
-flashlight.position.set(
-    0,
-    1.65,
-    0
-);
-
-flashlight.castShadow = true;
-
-scene.add(flashlight);
-
-scene.add(flashlight.target);
-
-
-/* =========================================
-   FLOOR
-========================================= */
-
-const floorGeometry = new THREE.PlaneGeometry(
-    40,
-    40
-);
-
-const floorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x292929,
-    roughness: 0.85
+const concrete = new THREE.MeshStandardMaterial({
+    color: 0x292b2d,
+    roughness: 0.95
 });
 
-const floor = new THREE.Mesh(
-    floorGeometry,
-    floorMaterial
-);
+const darkConcrete = new THREE.MeshStandardMaterial({
+    color: 0x17191b,
+    roughness: 1
+});
 
-floor.rotation.x = -Math.PI / 2;
+const metal = new THREE.MeshStandardMaterial({
+    color: 0x55585a,
+    metalness: 0.8,
+    roughness: 0.35
+});
 
-floor.receiveShadow = true;
+const yellow = new THREE.MeshStandardMaterial({
+    color: 0xb08b19,
+    roughness: 0.8
+});
 
-scene.add(floor);
+const glass = new THREE.MeshStandardMaterial({
+    color: 0x26343b,
+    transparent: true,
+    opacity: 0.45
+});
 
 
-/* =========================================
-   WALL CREATOR
-========================================= */
+/* =========================
+   HELPER
+========================= */
 
-function createWall(
+function box(
     x,
     y,
     z,
-    width,
-    height,
-    depth
+    w,
+    h,
+    d,
+    material
 ) {
 
-    const geometry = new THREE.BoxGeometry(
-        width,
-        height,
-        depth
-    );
-
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x202020,
-        roughness: 0.9
-    });
-
-    const wall = new THREE.Mesh(
-        geometry,
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
         material
     );
 
-    wall.position.set(
+    mesh.position.set(x, y, z);
+
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
+    scene.add(mesh);
+
+    return mesh;
+}
+
+
+/* =========================
+   FLOOR
+========================= */
+
+box(
+    0,
+    -0.1,
+    0,
+    18,
+    0.2,
+    60,
+    concrete
+);
+
+
+/* =========================
+   PLATFORM
+========================= */
+
+box(
+    0,
+    0.15,
+    5,
+    16,
+    0.3,
+    25,
+    concrete
+);
+
+
+/* Platform edge */
+
+box(
+    0,
+    0.28,
+    -7.5,
+    16,
+    0.15,
+    0.45,
+    yellow
+);
+
+
+/* =========================
+   WALLS
+========================= */
+
+box(
+    -8.5,
+    3,
+    0,
+    0.5,
+    6,
+    60,
+    darkConcrete
+);
+
+box(
+    8.5,
+    3,
+    0,
+    0.5,
+    6,
+    60,
+    darkConcrete
+);
+
+
+/* Back tunnel */
+
+box(
+    0,
+    3,
+    -30,
+    17,
+    6,
+    0.5,
+    darkConcrete
+);
+
+
+/* =========================
+   CEILING
+========================= */
+
+box(
+    0,
+    6,
+    0,
+    17,
+    0.4,
+    60,
+    darkConcrete
+);
+
+
+/* =========================
+   RAILWAY TRACKS
+========================= */
+
+function createRail(z) {
+
+    box(
+        0,
+        0.05,
+        z,
+        60,
+        0.08,
+        0.08,
+        metal
+    );
+
+    /* sleepers */
+
+    for (
+        let x = -28;
+        x < 29;
+        x += 1.2
+    ) {
+
+        box(
+            x,
+            0,
+            z,
+            0.35,
+            0.12,
+            1.8,
+            darkConcrete
+        );
+
+    }
+}
+
+
+createRail(-10);
+createRail(-12);
+
+
+/* =========================
+   PILLARS
+========================= */
+
+for (
+    let z = 15;
+    z >= -25;
+    z -= 5
+) {
+
+    box(
+        -5,
+        2.8,
+        z,
+        0.55,
+        5.6,
+        0.55,
+        concrete
+    );
+
+    box(
+        5,
+        2.8,
+        z,
+        0.55,
+        5.6,
+        0.55,
+        concrete
+    );
+}
+
+
+/* =========================
+   CEILING LIGHT
+========================= */
+
+function ceilingLight(z, flicker = false) {
+
+    const light = new THREE.PointLight(
+        0xd9e8ff,
+        2,
+        9
+    );
+
+    light.position.set(
+        0,
+        5.6,
+        z
+    );
+
+    light.castShadow = true;
+
+    scene.add(light);
+
+
+    const lamp = new THREE.Mesh(
+        new THREE.BoxGeometry(
+            2.4,
+            0.08,
+            0.18
+        ),
+        new THREE.MeshBasicMaterial({
+            color: 0xe9f4ff
+        })
+    );
+
+    lamp.position.copy(light.position);
+
+    scene.add(lamp);
+
+
+    if (flicker) {
+
+        setInterval(() => {
+
+            light.visible =
+                Math.random() > 0.25;
+
+            lamp.visible =
+                light.visible;
+
+        }, 120 + Math.random() * 300);
+
+    }
+}
+
+
+ceilingLight(15);
+ceilingLight(10, true);
+ceilingLight(5);
+ceilingLight(0, true);
+ceilingLight(-5);
+ceilingLight(-10, true);
+ceilingLight(-15);
+ceilingLight(-20, true);
+
+
+/* =========================
+   BENCH
+========================= */
+
+function bench(x, z) {
+
+    box(
+        x,
+        1,
+        z,
+        2.5,
+        0.18,
+        0.55,
+        metal
+    );
+
+    box(
+        x - 0.9,
+        0.5,
+        z,
+        0.15,
+        1,
+        0.15,
+        metal
+    );
+
+    box(
+        x + 0.9,
+        0.5,
+        z,
+        0.15,
+        1,
+        0.15,
+        metal
+    );
+}
+
+
+bench(-6, 12);
+bench(6, 7);
+bench(-6, 0);
+
+
+/* =========================
+   METRO SIGN
+========================= */
+
+function sign(text, x, y, z) {
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = 512;
+    canvas.height = 128;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, 0, 512, 128);
+
+    ctx.fillStyle = "#eeeeee";
+    ctx.font = "bold 48px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillText(text, 256, 64);
+
+    const texture =
+        new THREE.CanvasTexture(canvas);
+
+    const material =
+        new THREE.MeshBasicMaterial({
+            map: texture
+        });
+
+    const signMesh =
+        new THREE.Mesh(
+            new THREE.PlaneGeometry(
+                4,
+                1
+            ),
+            material
+        );
+
+    signMesh.position.set(
         x,
         y,
         z
     );
 
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-
-    scene.add(wall);
-
-    return wall;
+    scene.add(signMesh);
 }
 
 
-/* =========================================
-   METRO STATION
-========================================= */
-
-/* Left wall */
-
-createWall(
-    -8,
-    3,
+sign(
+    "PLATFORM 2",
     0,
-    0.5,
-    6,
-    40
+    3.5,
+    -6
 );
 
 
-/* Right wall */
+/* =========================
+   TICKET MACHINE
+========================= */
 
-createWall(
-    8,
-    3,
-    0,
-    0.5,
-    6,
-    40
-);
+function ticketMachine(x, z) {
 
-
-/* Back wall */
-
-createWall(
-    0,
-    3,
-    -20,
-    16,
-    6,
-    0.5
-);
-
-
-/* Ceiling */
-
-const ceilingGeometry =
-    new THREE.BoxGeometry(
-        16,
-        0.5,
-        40
-    );
-
-const ceilingMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x111111
-    });
-
-const ceiling =
-    new THREE.Mesh(
-        ceilingGeometry,
-        ceilingMaterial
-    );
-
-ceiling.position.y = 6;
-
-scene.add(ceiling);
-
-
-/* =========================================
-   RAILWAY TRACKS
-========================================= */
-
-function createRail(z) {
-
-    const railGeometry =
-        new THREE.BoxGeometry(
-            40,
-            0.08,
-            0.08
-        );
-
-    const railMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x777777,
-            metalness: 0.8,
-            roughness: 0.3
-        });
-
-    const rail =
-        new THREE.Mesh(
-            railGeometry,
-            railMaterial
-        );
-
-    rail.position.set(
-        0,
-        0.08,
-        z
-    );
-
-    scene.add(rail);
-}
-
-
-createRail(-3);
-createRail(-5);
-
-
-/* =========================================
-   PLATFORM EDGE
-========================================= */
-
-const edgeGeometry =
-    new THREE.BoxGeometry(
-        40,
-        0.15,
-        0.4
-    );
-
-const edgeMaterial =
-    new THREE.MeshStandardMaterial({
-        color: 0x555555
-    });
-
-const platformEdge =
-    new THREE.Mesh(
-        edgeGeometry,
-        edgeMaterial
-    );
-
-platformEdge.position.set(
-    0,
-    0.12,
-    -1
-);
-
-scene.add(platformEdge);
-
-
-/* =========================================
-   METRO COLUMNS
-========================================= */
-
-for (
-    let z = 15;
-    z > -18;
-    z -= 5
-) {
-
-    createWall(
-        -4,
-        2.5,
-        z,
-        0.5,
-        5,
-        0.5
-    );
-
-    createWall(
-        4,
-        2.5,
-        z,
-        0.5,
-        5,
-        0.5
-    );
-}
-
-
-/* =========================================
-   CEILING LIGHTS
-========================================= */
-
-function createCeilingLight(z) {
-
-    const light =
-        new THREE.PointLight(
-            0xbfcfff,
-            1.5,
-            8
-        );
-
-    light.position.set(
-        0,
-        5.5,
-        z
-    );
-
-    scene.add(light);
-
-
-    const bulbGeometry =
-        new THREE.BoxGeometry(
-            2,
-            0.05,
-            0.2
-        );
-
-    const bulbMaterial =
-        new THREE.MeshBasicMaterial({
-            color: 0xddeeff
-        });
-
-    const bulb =
-        new THREE.Mesh(
-            bulbGeometry,
-            bulbMaterial
-        );
-
-    bulb.position.set(
-        0,
-        5.5,
-        z
-    );
-
-    scene.add(bulb);
-}
-
-
-for (
-    let z = 15;
-    z > -18;
-    z -= 5
-) {
-
-    createCeilingLight(z);
-}
-
-
-/* =========================================
-   SIMPLE BENCHES
-========================================= */
-
-function createBench(x, z) {
-
-    const material =
-        new THREE.MeshStandardMaterial({
-            color: 0x343434
-        });
-
-
-    const seat =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                2.5,
-                0.15,
-                0.5
-            ),
-            material
-        );
-
-    seat.position.set(
+    box(
         x,
-        1,
-        z
+        1.2,
+        z,
+        0.8,
+        2.2,
+        0.45,
+        metal
     );
 
-    scene.add(seat);
-
-
-    const legs = [
-        [-0.9, z],
-        [0.9, z]
-    ];
-
-    for (const [lx, lz] of legs) {
-
-        const leg =
-            new THREE.Mesh(
-                new THREE.BoxGeometry(
-                    0.15,
-                    1,
-                    0.15
-                ),
-                material
-            );
-
-        leg.position.set(
-            x + lx,
-            0.5,
-            lz
-        );
-
-        scene.add(leg);
-    }
+    box(
+        x,
+        1.55,
+        z - 0.24,
+        0.55,
+        0.35,
+        0.03,
+        glass
+    );
 }
 
 
-createBench(-6, 10);
-createBench(6, 2);
-createBench(-6, -8);
+ticketMachine(-6, 18);
+ticketMachine(-6, 14);
 
 
-/* =========================================
-   FIRST PERSON CONTROLS
-========================================= */
+/* =========================
+   MAINTENANCE DOOR
+========================= */
+
+box(
+    6,
+    2,
+    -5,
+    2.5,
+    4,
+    0.2,
+    metal
+);
+
+sign(
+    "MAINTENANCE",
+    6,
+    4.5,
+    -4.8
+);
+
+
+/* =========================
+   FLASHLIGHT
+========================= */
+
+const flashlight =
+    new THREE.SpotLight(
+        0xffffff,
+        12,
+        35,
+        Math.PI / 7,
+        0.5,
+        1
+    );
+
+flashlight.castShadow = true;
+
+scene.add(flashlight);
+scene.add(flashlight.target);
+
+let flashlightOn = true;
+
+
+/* =========================
+   FIRST PERSON
+========================= */
 
 const controls =
     new PointerLockControls(
@@ -465,175 +534,50 @@ const controls =
         document.body
     );
 
-
-/* =========================================
-   START BUTTON
-========================================= */
-
-const startButton =
-    document.getElementById(
-        "startButton"
-    );
-
-const startScreen =
-    document.getElementById(
-        "startScreen"
-    );
-
-
-startButton.addEventListener(
-    "click",
-    () => {
+document
+    .getElementById("startButton")
+    .addEventListener("click", () => {
 
         controls.lock();
 
-    }
-);
-
+    });
 
 controls.addEventListener(
     "lock",
     () => {
 
-        startScreen.style.display =
-            "none";
+        document.getElementById(
+            "startScreen"
+        ).style.display = "none";
 
     }
 );
-
-
-/* =========================================
-   PAUSE
-========================================= */
-
-const pauseScreen =
-    document.getElementById(
-        "pauseScreen"
-    );
 
 controls.addEventListener(
     "unlock",
     () => {
 
-        if (
-            gameStarted &&
-            !gameFinished
-        ) {
-
-            pauseScreen.style.display =
-                "flex";
-
-        }
+        document.getElementById(
+            "pauseScreen"
+        ).style.display = "flex";
 
     }
 );
 
 
-const resumeButton =
-    document.getElementById(
-        "resumeButton"
-    );
-
-resumeButton.addEventListener(
-    "click",
-    () => {
-
-        controls.lock();
-
-    }
-);
-
-
-/* =========================================
+/* =========================
    MOVEMENT
-========================================= */
+========================= */
 
-const keys = {
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    sprint: false
-};
-
+const keys = {};
 
 document.addEventListener(
     "keydown",
-    (event) => {
+    e => {
 
-        switch (event.code) {
+        keys[e.code] = true;
 
-            case "KeyW":
-                keys.forward = true;
-                break;
-
-            case "KeyS":
-                keys.backward = true;
-                break;
-
-            case "KeyA":
-                keys.left = true;
-                break;
-
-            case "KeyD":
-                keys.right = true;
-                break;
-
-            case "ShiftLeft":
-                keys.sprint = true;
-                break;
-
-        }
-
-    }
-);
-
-
-document.addEventListener(
-    "keyup",
-    (event) => {
-
-        switch (event.code) {
-
-            case "KeyW":
-                keys.forward = false;
-                break;
-
-            case "KeyS":
-                keys.backward = false;
-                break;
-
-            case "KeyA":
-                keys.left = false;
-                break;
-
-            case "KeyD":
-                keys.right = false;
-                break;
-
-            case "ShiftLeft":
-                keys.sprint = false;
-                break;
-
-        }
-
-    }
-);
-
-
-/* =========================================
-   FLASHLIGHT TOGGLE
-========================================= */
-
-let flashlightOn = true;
-
-document.addEventListener(
-    "keydown",
-    (event) => {
-
-        if (
-            event.code === "KeyF"
-        ) {
+        if (e.code === "KeyF") {
 
             flashlightOn =
                 !flashlightOn;
@@ -646,90 +590,141 @@ document.addEventListener(
     }
 );
 
+document.addEventListener(
+    "keyup",
+    e => {
 
-/* =========================================
-   GAME STATE
-========================================= */
-
-let gameStarted = false;
-let gameFinished = false;
-
-controls.addEventListener(
-    "lock",
-    () => {
-
-        gameStarted = true;
+        keys[e.code] = false;
 
     }
 );
 
 
-/* =========================================
-   GAME CLOCK
-========================================= */
+document
+    .getElementById("resumeButton")
+    .addEventListener("click", () => {
 
-const clockElement =
-    document.getElementById(
-        "time"
-    );
+        controls.lock();
 
-let gameMinutes = 23 * 60;
+    });
 
 
-/* One real second = one game minute */
+/* =========================
+   GAME LOOP
+========================= */
 
-let lastTime =
-    performance.now();
-
-
-function updateGameTime() {
-
-    const now =
-        performance.now();
-
-    if (
-        gameStarted &&
-        controls.isLocked
-    ) {
-
-        if (
-            now - lastTime >= 1000
-        ) {
-
-            gameMinutes++;
-
-            lastTime = now;
-
-        }
-
-    }
+const clock =
+    new THREE.Clock();
 
 
-    if (
-        gameMinutes >= 24 * 60
-    ) {
+function update() {
 
-        gameMinutes -= 24 * 60;
+    requestAnimationFrame(update);
 
-    }
-
-
-    let hours =
-        Math.floor(
-            gameMinutes / 60
+    const delta =
+        Math.min(
+            clock.getDelta(),
+            0.05
         );
 
-    const minutes =
-        gameMinutes % 60;
 
-    const suffix =
-        hours >= 12
-            ? "PM"
-            : "AM";
+    if (controls.isLocked) {
 
-    if (hours === 0) {
-        hours = 12;
+        const speed =
+            keys["ShiftLeft"]
+                ? 7
+                : 3.5;
+
+
+        if (keys["KeyW"])
+            controls.moveForward(
+                speed * delta
+            );
+
+        if (keys["KeyS"])
+            controls.moveForward(
+                -speed * delta
+            );
+
+        if (keys["KeyA"])
+            controls.moveRight(
+                -speed * delta
+            );
+
+        if (keys["KeyD"])
+            controls.moveRight(
+                speed * delta
+            );
+
+
+        /* Station boundaries */
+
+        camera.position.x =
+            THREE.MathUtils.clamp(
+                camera.position.x,
+                -7.5,
+                7.5
+            );
+
+        camera.position.z =
+            THREE.MathUtils.clamp(
+                camera.position.z,
+                -28,
+                22
+            );
+
     }
 
-    if (hours > 12) {
-        hours -= 
+
+    /* Flashlight follows camera */
+
+    flashlight.position.copy(
+        camera.position
+    );
+
+    const direction =
+        new THREE.Vector3();
+
+    camera.getWorldDirection(
+        direction
+    );
+
+    flashlight.target.position.copy(
+        camera.position
+    );
+
+    flashlight.target.position.add(
+        direction.multiplyScalar(10)
+    );
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+update();
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        camera.aspect =
+            innerWidth / innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+
+    }
+);
