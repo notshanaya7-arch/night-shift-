@@ -1,1395 +1,1449 @@
-// ============================================================
-// NIGHT SHIFT: 3:17 AM
-// MASTER GAME.JS
-// Main character: YASH
-// ============================================================
-
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import * as THREE from "three";
 import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/PointerLockControls.js";
 
-
-// ============================================================
-// BASIC SETUP
-// ============================================================
+/* =========================================================
+   NIGHT SHIFT: 3:17 AM
+   Main character: Yash
+   ========================================================= */
 
 const canvas = document.getElementById("gameCanvas");
 
+const timeUI = document.getElementById("time");
+const batteryUI = document.getElementById("batteryValue");
+const objectiveUI = document.getElementById("objectiveText");
+const interactionUI = document.getElementById("interaction");
+
+const startScreen = document.getElementById("startScreen");
+const pauseScreen = document.getElementById("pauseScreen");
+
+const startButton = document.getElementById("startButton");
+const resumeButton = document.getElementById("resumeButton");
+const restartButton = document.getElementById("restartButton");
+
+const eventMessage = document.getElementById("eventMessage");
+const eventText = document.getElementById("eventText");
+
+const errorScreen = document.getElementById("errorScreen");
+const errorText = document.getElementById("errorText");
+
+/* =========================================================
+   BASIC THREE.JS SETUP
+   ========================================================= */
+
 const scene = new THREE.Scene();
 
-scene.background = new THREE.Color(0x030405);
+scene.background = new THREE.Color(0x050608);
 
-scene.fog = new THREE.Fog(
-    0x030405,
-    8,
-    65
+scene.fog = new THREE.FogExp2(
+  0x050608,
+  0.035
 );
 
-
 const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    150
+  75,
+  window.innerWidth / window.innerHeight,
+  0.05,
+  250
 );
 
 camera.position.set(
-    0,
-    1.7,
-    25
+  0,
+  1.7,
+  14
 );
 
-
 const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true
+  canvas,
+  antialias: true
 });
 
 renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
+  window.innerWidth,
+  window.innerHeight
 );
 
 renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, 2)
+  Math.min(window.devicePixelRatio, 2)
 );
 
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-renderer.shadowMap.type =
-    THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+/* =========================================================
+   CONTROLS
+   ========================================================= */
 
-const controls =
-    new PointerLockControls(
-        camera,
-        document.body
-    );
+const controls = new PointerLockControls(
+  camera,
+  document.body
+);
 
+scene.add(camera);
 
-const clock = new THREE.Clock();
+/* =========================================================
+   GAME STATE
+   ========================================================= */
 
+const state = {
 
-// ============================================================
-// GAME STATE
-// ============================================================
+  started: false,
 
-const game = {
+  paused: false,
 
-    started: false,
+  gameOver: false,
 
-    paused: false,
+  minutes: 23 * 60,
 
-    timeMinutes: 23 * 60,
+  battery: 100,
 
-    // 1 game hour = 4.5 real minutes
-    minutesPerSecond:
-        60 / 270,
+  flashlightOn: true,
 
-    flashlight: true,
+  stamina: 100,
 
-    battery: 100,
+  hasKey: false,
 
-    hasKey: false,
+  powerRestored: false,
 
-    powerRestored: false,
+  readReport: false,
 
-    foundReport: false,
+  readFamilyFile: false,
 
-    foundFamilyDocument: false,
+  event317: false,
 
-    watchedCCTV: false,
+  trainArrived: false,
 
-    sawPassenger: false,
+  passengerActive: false,
 
-    trainArrived: false,
+  currentInteractable: null,
 
-    passengerActive: false,
+  objective:
+    "Find the maintenance key."
 
-    passengerEscaped: false,
-
-    endingTriggered: false,
-
-    currentObjective:
-        "Check the electrical panel.",
-
-    currentCamera: 1,
-
-    cctvOpen: false,
-
-    inventory: [],
-
-    lastMessage: "",
-
-    footsteps: false
 };
 
+/* =========================================================
+   INPUT
+   ========================================================= */
 
-// ============================================================
-// PLAYER
-// ============================================================
+const keys = {};
 
-const player = {
+window.addEventListener("keydown", event => {
 
-    height: 1.7,
+  keys[event.code] = true;
 
-    radius: 0.35,
+  if (
+    event.code === "KeyF" &&
+    state.started &&
+    !state.gameOver
+  ) {
 
-    speed: 3.5,
+    toggleFlashlight();
 
-    sprintSpeed: 6.5,
+  }
 
-    stamina: 100
-};
+  if (
+    event.code === "KeyE" &&
+    state.started &&
+    !state.gameOver
+  ) {
 
+    interact();
 
-// ============================================================
-// MATERIALS
-// ============================================================
+  }
 
-const floorMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x242424,
-        roughness: 0.95
-    });
+});
 
+window.addEventListener("keyup", event => {
 
-const wallMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x303236,
-        roughness: 0.85
-    });
+  keys[event.code] = false;
 
+});
 
-const darkMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x101114,
-        roughness: 0.9
-    });
+/* =========================================================
+   START / PAUSE
+   ========================================================= */
 
+startButton.addEventListener("click", () => {
 
-const metalMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x55585c,
-        metalness: 0.75,
-        roughness: 0.4
-    });
+  state.started = true;
 
+  startScreen.classList.add("hidden");
 
-const doorMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x25272a,
-        metalness: 0.45,
-        roughness: 0.7
-    });
+  controls.lock();
 
+  showEvent(
+    "EMPLOYEE: YASH\nSHIFT STARTED — 11:00 PM",
+    3000
+  );
 
-const redMat =
-    new THREE.MeshStandardMaterial({
-        color: 0x440b0b,
-        roughness: 0.8
-    });
+});
 
+resumeButton.addEventListener("click", () => {
 
-const yellowMat =
-    new THREE.MeshStandardMaterial({
-        color: 0xb58a00,
-        metalness: 0.8,
-        roughness: 0.25
-    });
+  pauseScreen.classList.add("hidden");
 
+  controls.lock();
 
-// ============================================================
-// COLLISION SYSTEM
-// ============================================================
+});
 
-const colliders = [];
+restartButton.addEventListener("click", () => {
 
-const interactables = [];
+  location.reload();
 
+});
 
-function addCollider(
-    mesh,
-    width,
-    depth
+controls.addEventListener("lock", () => {
+
+  if (state.started && !state.gameOver) {
+
+    state.paused = false;
+
+    pauseScreen.classList.add("hidden");
+
+  }
+
+});
+
+controls.addEventListener("unlock", () => {
+
+  if (
+    state.started &&
+    !state.gameOver
+  ) {
+
+    state.paused = true;
+
+    pauseScreen.classList.remove("hidden");
+
+  }
+
+});
+
+/* =========================================================
+   MATERIALS
+   ========================================================= */
+
+function material(
+  color,
+  roughness = 0.8,
+  metalness = 0
 ) {
 
-    const collider = {
-        mesh,
-        width,
-        depth,
-        enabled: true
-    };
+  return new THREE.MeshStandardMaterial({
 
-    colliders.push(collider);
+    color,
 
-    return collider;
+    roughness,
+
+    metalness
+
+  });
+
 }
 
+const floorMat = material(0x25272a);
 
-function removeCollider(mesh) {
+const wallMat = material(0x343638);
 
-    const found =
-        colliders.find(
-            c => c.mesh === mesh
-        );
+const ceilingMat = material(0x1b1c1e);
 
-    if (found) {
-        found.enabled = false;
-    }
-}
+const darkMat = material(0x111214);
 
+const metalMat = material(
+  0x4a4d50,
+  0.45,
+  0.65
+);
 
-function restoreCollider(mesh) {
+const yellowMat = material(
+  0x8c721c
+);
 
-    const found =
-        colliders.find(
-            c => c.mesh === mesh
-        );
+const redMat = material(
+  0x641717
+);
 
-    if (found) {
-        found.enabled = true;
-    }
-}
+const glassMat =
+  new THREE.MeshStandardMaterial({
 
+    color: 0x111820,
 
-// ============================================================
-// BOX HELPER
-// ============================================================
+    transparent: true,
+
+    opacity: 0.55,
+
+    roughness: 0.15,
+
+    metalness: 0.2
+
+  });
+
+/* =========================================================
+   HELPER FUNCTIONS
+   ========================================================= */
 
 function box(
-    x,
-    y,
-    z,
-    sx,
-    sy,
-    sz,
-    material,
-    name = "",
-    collision = false
+  name,
+  size,
+  position,
+  mat,
+  cast = true,
+  receive = true
 ) {
 
-    const mesh =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                sx,
-                sy,
-                sz
-            ),
-            material
-        );
-
-    mesh.position.set(
-        x,
-        y,
-        z
+  const geometry =
+    new THREE.BoxGeometry(
+      size.x,
+      size.y,
+      size.z
     );
 
-    mesh.castShadow = true;
+  const mesh =
+    new THREE.Mesh(
+      geometry,
+      mat
+    );
 
-    mesh.receiveShadow = true;
+  mesh.name = name;
 
-    mesh.name = name;
+  mesh.position.copy(position);
 
-    scene.add(mesh);
+  mesh.castShadow = cast;
 
-    if (collision) {
+  mesh.receiveShadow = receive;
 
-        addCollider(
-            mesh,
-            sx,
-            sz
-        );
-    }
+  scene.add(mesh);
 
-    return mesh;
+  return mesh;
 }
 
+function cylinder(
+  name,
+  radius,
+  height,
+  position,
+  mat
+) {
 
-// ============================================================
-// LIGHTING
-// ============================================================
+  const geometry =
+    new THREE.CylinderGeometry(
+      radius,
+      radius,
+      height,
+      16
+    );
+
+  const mesh =
+    new THREE.Mesh(
+      geometry,
+      mat
+    );
+
+  mesh.name = name;
+
+  mesh.position.copy(position);
+
+  mesh.castShadow = true;
+
+  mesh.receiveShadow = true;
+
+  scene.add(mesh);
+
+  return mesh;
+}
+
+/* =========================================================
+   STATION
+   ========================================================= */
+
+function createStation() {
+
+  /* Main floor */
+
+  box(
+    "PlatformFloor",
+    new THREE.Vector3(
+      40,
+      0.3,
+      50
+    ),
+    new THREE.Vector3(
+      0,
+      -0.15,
+      0
+    ),
+    floorMat
+  );
+
+  /* Ceiling */
+
+  box(
+    "Ceiling",
+    new THREE.Vector3(
+      40,
+      0.3,
+      50
+    ),
+    new THREE.Vector3(
+      0,
+      6,
+      0
+    ),
+    ceilingMat
+  );
+
+  /* Back wall */
+
+  box(
+    "BackWall",
+    new THREE.Vector3(
+      40,
+      6,
+      0.4
+    ),
+    new THREE.Vector3(
+      0,
+      3,
+      -25
+    ),
+    wallMat
+  );
+
+  /* Left wall */
+
+  box(
+    "LeftWall",
+    new THREE.Vector3(
+      0.4,
+      6,
+      50
+    ),
+    new THREE.Vector3(
+      -20,
+      3,
+      0
+    ),
+    wallMat
+  );
+
+  /* Right wall */
+
+  box(
+    "RightWall",
+    new THREE.Vector3(
+      0.4,
+      6,
+      50
+    ),
+    new THREE.Vector3(
+      20,
+      3,
+      0
+    ),
+    wallMat
+  );
+
+  /* Platform edge */
+
+  box(
+    "PlatformEdge",
+    new THREE.Vector3(
+      40,
+      0.25,
+      0.35
+    ),
+    new THREE.Vector3(
+      0,
+      0.12,
+      -8
+    ),
+    yellowMat
+  );
+
+  /* =====================================================
+     TRACKS
+     ===================================================== */
+
+  createTrack(-3.5);
+
+  createTrack(3.5);
+
+  /* =====================================================
+     PILLARS
+     ===================================================== */
+
+  for (
+    let z = -22;
+    z <= 20;
+    z += 7
+  ) {
+
+    createPillar(-14, z);
+
+    createPillar(14, z);
+
+  }
+
+  /* =====================================================
+     BENCHES
+     ===================================================== */
+
+  createBench(-9, 8);
+
+  createBench(9, 1);
+
+  createBench(-9, -7);
+
+  /* =====================================================
+     TICKET MACHINES
+     ===================================================== */
+
+  createTicketMachine(
+    -7,
+    5
+  );
+
+  createTicketMachine(
+    -7,
+    1
+  );
+
+  createTicketMachine(
+    -7,
+    -3
+  );
+
+  /* =====================================================
+     MAINTENANCE AREA
+     ===================================================== */
+
+  createMaintenanceRoom();
+
+  /* =====================================================
+     SECURITY ROOM
+     ===================================================== */
+
+  createSecurityRoom();
+
+  /* =====================================================
+     EXIT
+     ===================================================== */
+
+  createExit();
+
+}
+
+function createTrack(x) {
+
+  /* Rails */
+
+  box(
+    "Rail",
+    new THREE.Vector3(
+      0.15,
+      0.1,
+      48
+    ),
+    new THREE.Vector3(
+      x - 0.7,
+      0.05,
+      -2
+    ),
+    metalMat
+  );
+
+  box(
+    "Rail",
+    new THREE.Vector3(
+      0.15,
+      0.1,
+      48
+    ),
+    new THREE.Vector3(
+      x + 0.7,
+      0.05,
+      -2
+    ),
+    metalMat
+  );
+
+  /* Sleepers */
+
+  for (
+    let z = -25;
+    z < 22;
+    z += 1.8
+  ) {
+
+    box(
+      "Sleeper",
+      new THREE.Vector3(
+        2.2,
+        0.12,
+        0.3
+      ),
+      new THREE.Vector3(
+        x,
+        0,
+        z
+      ),
+      darkMat
+    );
+
+  }
+
+}
+
+function createPillar(x, z) {
+
+  box(
+    "Pillar",
+    new THREE.Vector3(
+      0.7,
+      5.5,
+      0.7
+    ),
+    new THREE.Vector3(
+      x,
+      2.75,
+      z
+    ),
+    metalMat
+  );
+
+}
+
+function createBench(x, z) {
+
+  box(
+    "BenchSeat",
+    new THREE.Vector3(
+      4,
+      0.3,
+      0.8
+    ),
+    new THREE.Vector3(
+      x,
+      1,
+      z
+    ),
+    metalMat
+  );
+
+  box(
+    "BenchBack",
+    new THREE.Vector3(
+      4,
+      1.5,
+      0.25
+    ),
+    new THREE.Vector3(
+      x,
+      1.7,
+      z + 0.3
+    ),
+    metalMat
+  );
+
+  for (
+    let dx of [-1.5, 1.5]
+  ) {
+
+    box(
+      "BenchLeg",
+      new THREE.Vector3(
+        0.25,
+        1,
+        0.25
+      ),
+      new THREE.Vector3(
+        x + dx,
+        0.5,
+        z
+      ),
+      darkMat
+    );
+
+  }
+
+}
+
+function createTicketMachine(x, z) {
+
+  const machine = box(
+    "TicketMachine",
+    new THREE.Vector3(
+      1,
+      2.2,
+      0.6
+    ),
+    new THREE.Vector3(
+      x,
+      1.1,
+      z
+    ),
+    darkMat
+  );
+
+  box(
+    "TicketScreen",
+    new THREE.Vector3(
+      0.55,
+      0.45,
+      0.05
+    ),
+    new THREE.Vector3(
+      x,
+      1.55,
+      z - 0.32
+    ),
+    glassMat,
+    false
+  );
+
+}
+
+/* =========================================================
+   MAINTENANCE ROOM
+   ========================================================= */
+
+const maintenanceDoor = {
+
+  mesh: null,
+
+  open: false,
+
+  position:
+    new THREE.Vector3(
+      9,
+      1.5,
+      -18
+    )
+
+};
+
+function createMaintenanceRoom() {
+
+  /* Walls */
+
+  box(
+    "MaintenanceBack",
+    new THREE.Vector3(
+      8,
+      4,
+      0.3
+    ),
+    new THREE.Vector3(
+      10,
+      2,
+      -23
+    ),
+    wallMat
+  );
+
+  box(
+    "MaintenanceLeft",
+    new THREE.Vector3(
+      0.3,
+      4,
+      10
+    ),
+    new THREE.Vector3(
+      6,
+      2,
+      -18
+    ),
+    wallMat
+  );
+
+  box(
+    "MaintenanceRight",
+    new THREE.Vector3(
+      0.3,
+      4,
+      10
+    ),
+    new THREE.Vector3(
+      14,
+      2,
+      -18
+    ),
+    wallMat
+  );
+
+  maintenanceDoor.mesh = box(
+    "MaintenanceDoor",
+    new THREE.Vector3(
+      2.5,
+      3,
+      0.3
+    ),
+    maintenanceDoor.position,
+    metalMat
+  );
+
+  maintenanceDoor.mesh.userData.interactable =
+    "door";
+
+  /* Electrical panel */
+
+  const panel = box(
+    "ElectricalPanel",
+    new THREE.Vector3(
+      1.2,
+      1.6,
+      0.25
+    ),
+    new THREE.Vector3(
+      11.5,
+      1.8,
+      -22.7
+    ),
+    darkMat
+  );
+
+  panel.userData.interactable =
+    "power";
+
+  /* Warning light */
+
+  const warningLight = new THREE.PointLight(
+    0xaa0000,
+    1.5,
+    7
+  );
+
+  warningLight.position.set(
+    10,
+    3.2,
+    -22.5
+  );
+
+  scene.add(warningLight);
+
+}
+
+/* =========================================================
+   SECURITY ROOM
+   ========================================================= */
+
+function createSecurityRoom() {
+
+  box(
+    "SecurityBack",
+    new THREE.Vector3(
+      10,
+      4,
+      0.3
+    ),
+    new THREE.Vector3(
+      -11,
+      2,
+      -23
+    ),
+    wallMat
+  );
+
+  /* Desk */
+
+  box(
+    "SecurityDesk",
+    new THREE.Vector3(
+      6,
+      1,
+      2
+    ),
+    new THREE.Vector3(
+      -11,
+      0.5,
+      -20
+    ),
+    darkMat
+  );
+
+  /* Monitor */
+
+  const monitor = box(
+    "CCTVMonitor",
+    new THREE.Vector3(
+      3,
+      1.8,
+      0.2
+    ),
+    new THREE.Vector3(
+      -11,
+      2,
+      -20.8
+    ),
+    glassMat
+  );
+
+  monitor.userData.interactable =
+    "cctv";
+
+  /* Report */
+
+  const report = box(
+    "SecurityReport",
+    new THREE.Vector3(
+      0.8,
+      0.04,
+      0.6
+    ),
+    new THREE.Vector3(
+      -8.5,
+      1.03,
+      -20
+    ),
+    material(0xddd8c7)
+  );
+
+  report.userData.interactable =
+    "report";
+
+  /* Family file */
+
+  const file = box(
+    "FamilyFile",
+    new THREE.Vector3(
+      0.8,
+      0.05,
+      0.5
+    ),
+    new THREE.Vector3(
+      -13.5,
+      1.03,
+      -20
+    ),
+    redMat
+  );
+
+  file.userData.interactable =
+    "family";
+
+}
+
+/* =========================================================
+   EXIT
+   ========================================================= */
+
+function createExit() {
+
+  const exit = box(
+    "EmergencyExit",
+    new THREE.Vector3(
+      3,
+      3,
+      0.3
+    ),
+    new THREE.Vector3(
+      0,
+      1.5,
+      24
+    ),
+    redMat
+  );
+
+  exit.userData.interactable =
+    "exit";
+
+}
+
+/* =========================================================
+   KEY
+   ========================================================= */
+
+const key = new THREE.Group();
+
+function createKey() {
+
+  const ring =
+    new THREE.Mesh(
+      new THREE.TorusGeometry(
+        0.13,
+        0.035,
+        8,
+        16
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0xd7b94c,
+        metalness: 0.8,
+        roughness: 0.25
+      })
+    );
+
+  const shaft =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.35,
+        0.06,
+        0.06
+      ),
+      ring.material
+    );
+
+  shaft.position.x =
+    0.2;
+
+  key.add(
+    ring,
+    shaft
+  );
+
+  key.position.set(
+    -7,
+    1.35,
+    5
+  );
+
+  key.rotation.z =
+    Math.PI / 2;
+
+  key.userData.interactable =
+    "key";
+
+  scene.add(key);
+
+}
+
+createKey();
+
+/* =========================================================
+   LIGHTING
+   ========================================================= */
 
 const ambientLight =
-    new THREE.HemisphereLight(
-        0x555555,
-        0x090909,
-        0.35
-    );
+  new THREE.HemisphereLight(
+    0x20242c,
+    0x050505,
+    0.28
+  );
 
 scene.add(ambientLight);
 
+function createCeilingLights() {
 
-const mainLight =
-    new THREE.DirectionalLight(
-        0x8890a0,
-        0.15
-    );
-
-mainLight.position.set(
-    0,
-    10,
-    0
-);
-
-mainLight.castShadow = true;
-
-scene.add(mainLight);
-
-
-// ============================================================
-// MAIN STATION
-// ============================================================
-
-box(
-    0,
-    -0.1,
-    0,
-    24,
-    0.2,
-    70,
-    floorMat,
-    "Platform Floor"
-);
-
-
-// Outer walls
-
-box(
-    0,
-    4,
-    -35,
-    24,
-    8,
-    0.5,
-    wallMat,
-    "North Wall",
-    true
-);
-
-
-box(
-    0,
-    4,
-    35,
-    24,
-    8,
-    0.5,
-    wallMat,
-    "South Wall",
-    true
-);
-
-
-box(
-    -12,
-    4,
-    0,
-    0.5,
-    8,
-    70,
-    wallMat,
-    "West Wall",
-    true
-);
-
-
-box(
-    12,
-    4,
-    0,
-    0.5,
-    8,
-    70,
-    wallMat,
-    "East Wall",
-    true
-);
-
-
-// Ceiling
-
-box(
-    0,
-    8,
-    0,
-    24,
-    0.3,
-    70,
-    darkMat,
-    "Ceiling"
-);
-
-
-// ============================================================
-// PLATFORM EDGE
-// ============================================================
-
-box(
-    0,
-    0.05,
-    -8,
-    11,
-    0.15,
-    0.25,
-    yellowMat,
-    "Safety Line"
-);
-
-
-// ============================================================
-// TRACKS
-// ============================================================
-
-for (
-    let z = -32;
-    z <= 32;
-    z += 4
-) {
-
-    box(
-        -4,
-        -0.03,
-        z,
-        0.15,
-        0.1,
-        3.5,
-        metalMat,
-        "Rail"
-    );
-
-    box(
-        4,
-        -0.03,
-        z,
-        0.15,
-        0.1,
-        3.5,
-        metalMat,
-        "Rail"
-    );
-}
-
-
-for (
-    let z = -32;
-    z <= 32;
-    z += 2
-) {
-
-    box(
-        0,
-        -0.08,
-        z,
-        9,
-        0.15,
-        0.3,
-        darkMat,
-        "Sleeper"
-    );
-}
-
-
-// ============================================================
-// PILLARS
-// ============================================================
-
-for (
-    let z = -28;
-    z <= 28;
-    z += 8
-) {
-
-    box(
-        -9,
-        4,
-        z,
-        0.7,
-        8,
-        0.7,
-        wallMat,
-        "Pillar",
-        true
-    );
-
-    box(
-        9,
-        4,
-        z,
-        0.7,
-        8,
-        0.7,
-        wallMat,
-        "Pillar",
-        true
-    );
-}
-
-
-// ============================================================
-// LIGHTS
-// ============================================================
-
-const ceilingLights = [];
-
-
-for (
-    let z = -28;
-    z <= 28;
+  for (
+    let z = -20;
+    z <= 20;
     z += 7
-) {
+  ) {
 
     const light =
-        new THREE.PointLight(
-            0xffffff,
-            1.2,
-            13
-        );
+      new THREE.PointLight(
+        0xb8c7d6,
+        1.5,
+        9
+      );
 
     light.position.set(
-        0,
-        7,
-        z
+      0,
+      5.2,
+      z
     );
 
     light.castShadow = true;
 
     scene.add(light);
 
-    ceilingLights.push(light);
+  }
 
-
-    box(
-        0,
-        7.8,
-        z,
-        2,
-        0.1,
-        0.5,
-        new THREE.MeshBasicMaterial({
-            color: 0xffffff
-        }),
-        "Ceiling Light"
-    );
 }
 
-
-// ============================================================
-// BENCHES
-// ============================================================
-
-for (
-    let z = -20;
-    z <= 20;
-    z += 10
-) {
-
-    box(
-        -8,
-        1,
-        z,
-        4,
-        0.3,
-        0.7,
-        metalMat,
-        "Bench",
-        true
-    );
-
-    box(
-        -8,
-        2,
-        z + 0.3,
-        4,
-        2,
-        0.2,
-        metalMat,
-        "Bench Back",
-        true
-    );
-}
-
-
-// ============================================================
-// SIGNS
-// ============================================================
-
-function createTextTexture(text) {
-
-    const c =
-        document.createElement("canvas");
-
-    c.width = 512;
-    c.height = 128;
-
-    const ctx =
-        c.getContext("2d");
-
-    ctx.fillStyle = "#07100a";
-    ctx.fillRect(
-        0,
-        0,
-        c.width,
-        c.height
-    );
-
-    ctx.fillStyle = "#d6e8d6";
-
-    ctx.font =
-        "bold 42px Arial";
-
-    ctx.textAlign = "center";
-
-    ctx.textBaseline = "middle";
-
-    ctx.fillText(
-        text,
-        c.width / 2,
-        c.height / 2
-    );
-
-    return new THREE.CanvasTexture(c);
-}
-
-
-function sign(
-    text,
-    x,
-    y,
-    z,
-    rotationY = 0
-) {
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            map: createTextTexture(text)
-        });
-
-    const mesh =
-        new THREE.Mesh(
-            new THREE.PlaneGeometry(
-                4,
-                1
-            ),
-            material
-        );
-
-    mesh.position.set(
-        x,
-        y,
-        z
-    );
-
-    mesh.rotation.y =
-        rotationY;
-
-    scene.add(mesh);
-}
-
-
-sign(
-    "PLATFORM 2",
-    0,
-    5.5,
-    -10
-);
-
-
-// ============================================================
-// MAINTENANCE ROOM
-// ============================================================
-
-const roomX = 7;
-const roomZ = -15;
-
-
-// Back
-
-box(
-    roomX,
-    3,
-    roomZ - 5,
-    8,
-    6,
-    0.4,
-    wallMat,
-    "Maintenance Back",
-    true
-);
-
-
-// Left
-
-box(
-    roomX - 4,
-    3,
-    roomZ,
-    0.4,
-    6,
-    10,
-    wallMat,
-    "Maintenance Left",
-    true
-);
-
-
-// Right
-
-box(
-    roomX + 4,
-    3,
-    roomZ,
-    0.4,
-    6,
-    10,
-    wallMat,
-    "Maintenance Right",
-    true
-);
-
-
-// ============================================================
-// MAINTENANCE DOOR
-// ============================================================
-
-const maintenanceDoor =
-    box(
-        7,
-        2.5,
-        -10,
-        0.35,
-        5,
-        3.5,
-        doorMat,
-        "Maintenance Door",
-        true
-    );
-
-
-maintenanceDoor.userData.type =
-    "door";
-
-maintenanceDoor.userData.locked =
-    true;
-
-maintenanceDoor.userData.open =
-    false;
-
-
-interactables.push(
-    maintenanceDoor
-);
-
-
-const doorCollider =
-    colliders.find(
-        c => c.mesh === maintenanceDoor
-    );
-
-
-// ============================================================
-// ELECTRICAL PANEL
-// ============================================================
-
-const panel =
-    box(
-        10.6,
-        2.5,
-        -17,
-        0.25,
-        2.5,
-        2,
-        metalMat,
-        "Electrical Panel"
-    );
-
-
-panel.userData.type =
-    "panel";
-
-
-interactables.push(
-    panel
-);
-
-
-const panelLight =
-    new THREE.PointLight(
-        0xff2200,
-        1.2,
-        4
-    );
-
-panelLight.position.set(
-    10.2,
-    2.7,
-    -17
-);
-
-scene.add(panelLight);
-
-
-// ============================================================
-// GENERATOR
-// ============================================================
-
-box(
-    8,
-    1.2,
-    -18.5,
-    3,
-    2.4,
-    2,
-    metalMat,
-    "Generator",
-    true
-);
-
-
-// ============================================================
-// KEY
-// ============================================================
-
-const key =
-    new THREE.Mesh(
-        new THREE.BoxGeometry(
-            0.12,
-            0.05,
-            0.35
-        ),
-        new THREE.MeshStandardMaterial({
-            color: 0xffc400,
-            metalness: 0.9,
-            roughness: 0.2
-        })
-    );
-
-
-key.position.set(
-    -7,
-    1.35,
-    5
-);
-
-key.rotation.y =
-    Math.PI / 4;
-
-scene.add(key);
-
-
-key.userData.type =
-    "key";
-
-
-interactables.push(
-    key
-);
-
-
-// ============================================================
-// SECURITY ROOM
-// ============================================================
-
-const securityX = -7;
-const securityZ = -25;
-
-
-// Back wall
-
-box(
-    securityX,
-    3,
-    securityZ - 4,
-    8,
-    6,
-    0.4,
-    wallMat,
-    "Security Back",
-    true
-);
-
-
-// Left wall
-
-box(
-    securityX - 4,
-    3,
-    securityZ,
-    0.4,
-    6,
-    8,
-    wallMat,
-    "Security Left",
-    true
-);
-
-
-// Right wall
-
-box(
-    securityX + 4,
-    3,
-    securityZ,
-    0.4,
-    6,
-    8,
-    wallMat,
-    "Security Right",
-    true
-);
-
-
-// ============================================================
-// SECURITY MONITOR
-// ============================================================
-
-const securityMonitor =
-    box(
-        -7,
-        2.2,
-        -21,
-        3,
-        2,
-        0.7,
-        darkMat,
-        "Security Monitor"
-    );
-
-
-securityMonitor.userData.type =
-    "cctv";
-
-
-interactables.push(
-    securityMonitor
-);
-
-
-// Monitor glow
-
-const monitorLight =
-    new THREE.PointLight(
-        0x224422,
-        1,
-        5
-    );
-
-monitorLight.position.set(
-    -7,
-    2.5,
-    -20.5
-);
-
-scene.add(monitorLight);
-
-
-// ============================================================
-// DOCUMENTS
-// ============================================================
-
-const report =
-    box(
-        -9,
-        1.25,
-        -23,
-        0.7,
-        0.08,
-        1,
-        new THREE.MeshStandardMaterial({
-            color: 0xd8d2bd
-        }),
-        "Security Report"
-    );
-
-
-report.userData.type =
-    "report";
-
-
-interactables.push(
-    report
-);
-
-
-const familyDocument =
-    box(
-        -5,
-        1.25,
-        -23,
-        0.7,
-        0.08,
-        1,
-        new THREE.MeshStandardMaterial({
-            color: 0xd8d2bd
-        }),
-        "Old Document"
-    );
-
-
-familyDocument.userData.type =
-    "familyDocument";
-
-
-interactables.push(
-    familyDocument
-);
-
-
-// ============================================================
-// TICKET MACHINE
-// ============================================================
-
-const ticketMachine =
-    box(
-        -8,
-        1.5,
-        5,
-        1.2,
-        3,
-        0.8,
-        metalMat,
-        "Ticket Machine"
-    );
-
-
-ticketMachine.userData.type =
-    "machine";
-
-
-interactables.push(
-    ticketMachine
-);
-
-
-// ============================================================
-// FLASHLIGHT
-// ============================================================
+createCeilingLights();
+
+/* =========================================================
+   FLASHLIGHT
+   ========================================================= */
 
 const flashlight =
-    new THREE.SpotLight(
-        0xffffff,
-        5,
-        27,
-        Math.PI / 7,
-        0.5,
-        1
-    );
+  new THREE.SpotLight(
+    0xffffff,
+    5,
+    30,
+    Math.PI / 7,
+    0.5,
+    1
+  );
 
+flashlight.position.set(
+  0,
+  -0.1,
+  0
+);
 
-flashlight.castShadow =
-    true;
+flashlight.castShadow = true;
 
-camera.add(
-    flashlight
+camera.add(flashlight);
+
+const flashlightTarget =
+  new THREE.Object3D();
+
+flashlightTarget.position.set(
+  0,
+  0,
+  -10
 );
 
 camera.add(
-    flashlight.target
+  flashlightTarget
 );
 
-scene.add(
-    camera
-);
+flashlight.target =
+  flashlightTarget;
 
+function toggleFlashlight() {
 
-// ============================================================
-// CCTV UI
-// ============================================================
+  if (
+    state.battery <= 0
+  ) {
 
-const cctvScreen =
-    document.createElement("div");
+    state.flashlightOn = false;
 
-cctvScreen.id =
-    "cctvRuntime";
+    flashlight.visible = false;
 
-cctvScreen.style.cssText = `
-position:fixed;
-inset:0;
-z-index:100;
-display:none;
-background:#020403;
-color:#b9e9b9;
-font-family:monospace;
-padding:20px;
-box-sizing:border-box;
-`;
+    return;
 
-document.body.appendChild(
-    cctvScreen
-);
+  }
 
+  state.flashlightOn =
+    !state.flashlightOn;
 
-cctvScreen.innerHTML = `
+  flashlight.visible =
+    state.flashlightOn;
 
-<div style="
-display:flex;
-justify-content:space-between;
-font-size:20px;
-margin-bottom:15px;
-">
-<span>SECURITY MONITOR</span>
-<span id="runtimeCam">CAM 01</span>
-</div>
-
-<div id="runtimeView" style="
-height:70vh;
-border:2px solid #365236;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:28px;
-position:relative;
-overflow:hidden;
-background:#071007;
-">
-
-<div id="runtimeStatic" style="
-position:absolute;
-inset:0;
-opacity:.15;
-background:repeating-linear-gradient(
-0deg,
-transparent 0px,
-transparent 3px,
-white 4px
-);
-pointer-events:none;
-"></div>
-
-<div id="runtimeScene">
-MAIN PLATFORM — NORTH
-</div>
-
-<div id="runtimeWarning" style="
-position:absolute;
-display:none;
-color:#ff3333;
-font-size:25px;
-">
-MOTION DETECTED
-</div>
-
-</div>
-
-<div id="runtimeButtons" style="
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-top:15px;
-justify-content:center;
-"></div>
-
-<div style="
-text-align:center;
-margin-top:15px;
-color:#777;
-">
-E — EXIT SECURITY MONITOR
-</div>
-`;
-
-
-const runtimeCam =
-    document.getElementById(
-        "runtimeCam"
-    );
-
-const runtimeScene =
-    document.getElementById(
-        "runtimeScene"
-    );
-
-const runtimeWarning =
-    document.getElementById(
-        "runtimeWarning"
-    );
-
-const runtimeButtons =
-    document.getElementById(
-        "runtimeButtons"
-    );
-
-
-const cameraNames = {
-
-    1:
-        "MAIN PLATFORM — NORTH",
-
-    2:
-        "MAIN PLATFORM — SOUTH",
-
-    3:
-        "TICKET HALL",
-
-    4:
-        "TICKET GATES",
-
-    5:
-        "STAIRWAY",
-
-    6:
-        "MAINTENANCE CORRIDOR",
-
-    7:
-        "MAINTENANCE DOOR",
-
-    8:
-        "GENERATOR ROOM",
-
-    9:
-        "PLATFORM 2",
-
-    10:
-        "EMERGENCY EXIT",
-
-    11:
-        "SERVICE TUNNEL",
-
-    12:
-        "UNKNOWN LOCATION"
-};
-
-
-for (
-    let i = 1;
-    i <= 12;
-    i++
-) {
-
-    const button =
-        document.createElement(
-            "button"
-        );
-
-    button.textContent =
-        `CAM ${String(i).padStart(2, "0")}`;
-
-    button.style.cssText = `
-    background:#091309;
-    color:#a5d5a5;
-    border:1px solid #365536;
-    padding:8px 12px;
-    cursor:pointer;
-    `;
-
-    button.onclick =
-        () => switchCamera(i);
-
-    runtimeButtons.appendChild(
-        button
-    );
 }
 
+/* =========================================================
+   THE PASSENGER
+   ========================================================= */
 
-// ============================================================
-// CCTV CAMERA SWITCHING
-// ============================================================
+let passenger = null;
 
-function switchCamera(number) {
+function createPassenger() {
 
-    game.currentCamera =
-        number;
+  passenger =
+    new THREE.Group();
 
-    runtimeCam.textContent =
-        `CAM ${String(number).padStart(2, "0")}`;
+  /* Body */
 
-    runtimeWarning.style.display =
-        "none";
+  const body =
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.32,
+        0.42,
+        1.8,
+        12
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0x050505,
+        roughness: 1
+      })
+    );
 
+  body.position.y =
+    0.9;
 
-    if (
-        number === 7 &&
-        game.powerRestored
-    ) {
+  passenger.add(body);
 
-        game.watchedCCTV =
-            true;
+  /* Head */
 
-        if (
-            !game.sawPassenger
-        ) {
+  const head =
+    new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.28,
+        16,
+        16
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0x020202,
+        roughness: 1
+      })
+    );
 
-            runtimeScene.innerHTML = `
-            <div style="
-            width:100%;
-            height:100%;
-            position:relative;
-            background:
-            linear-gradient(#111,#050505);
-            ">
-            
-            <div style="
-            position:absolute;
-            width:25px;
-            height:170px;
-            background:#030303;
-            left:61%;
-            top:31%;
-            border-radius:50% 50% 10% 10%;
-            ">
-            </div>
+  head.position.y =
+    2;
 
-            <div style="
-            position:absolute;
-            bottom:20px;
-            left:20px;
-            font-size:14px;
-            ">
-            MAINTENANCE CORRIDOR
-            </div>
+  passenger.add(head);
 
-            </div>
-            `;
+  passenger.position.set(
+    0,
+    0,
+    -22
+  );
 
-            runtimeWarning.style.display =
-                "block";
+  passenger.visible =
+    false;
 
-            game.sawPassenger =
-                true;
+  scene.add(passenger);
 
-            showMessage(
-                "CAM 07 — MOTION DETECTED"
-            );
-
-        } else {
-
-            runtimeScene.textContent =
-                "CAMERA FEED — EMPTY";
-        }
-
-    } else {
-
-        runtimeScene.textContent =
-            cameraNames[number];
-    }
-
-
-    if (
-        number === 12 &&
-        game.timeMinutes >=
-        3 * 60 + 17
-    ) {
-
-        runtimeScene.innerHTML = `
-        <div style="
-        text-align:center;
-        color:#888;
-        ">
-        SIGNAL SOURCE UNKNOWN
-        <br><br>
-        03:17:17
-        </div>
-        `;
-    }
 }
 
+createPassenger();
 
-// ============================================================
-// SHOW / HIDE CCTV
-// ============================================================
+/* =========================================================
+   GHOST TRAIN
+   ========================================================= */
 
-function openCCTV() {
+let ghostTrain = null;
 
-    game.cctvOpen =
+function createGhostTrain() {
+
+  ghostTrain =
+    new THREE.Group();
+
+  const body =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        8,
+        3.2,
+        15
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0x16191c,
+        roughness: 0.7,
+        metalness: 0.4
+      })
+    );
+
+  body.position.y =
+    1.8;
+
+  ghostTrain.add(body);
+
+  /* Windows */
+
+  for (
+    let z = -5;
+    z <= 5;
+    z += 2.5
+  ) {
+
+    const window =
+      new THREE.Mesh(
+        new THREE.BoxGeometry(
+          3,
+          1.1,
+          0.05
+        ),
+        new THREE.MeshStandardMaterial({
+          color: 0x020508,
+          emissive: 0x050505
+        })
+      );
+
+    window.position.set(
+      0,
+      2,
+      z
+    );
+
+    window.rotation.y =
+      Math.PI / 2;
+
+    ghostTrain.add(window);
+
+  }
+
+  ghostTrain.position.set(
+    3.5,
+    0,
+    -35
+  );
+
+  ghostTrain.visible =
+    false;
+
+  scene.add(
+    ghostTrain
+  );
+
+}
+
+/* =========================================================
+   INTERACTION
+   ========================================================= */
+
+function getInteractable() {
+
+  let closest = null;
+
+  let closestDistance =
+    Infinity;
+
+  const playerPos =
+    camera.position;
+
+  const objects = [
+    key,
+    maintenanceDoor.mesh,
+    ...scene.children
+  ];
+
+  for (
+    const object of objects
+  ) {
+
+    if (
+      !object ||
+      !object.userData ||
+      !object.userData.interactable
+    ) {
+
+      continue;
+
+    }
+
+    if (
+      object === key &&
+      state.hasKey
+    ) {
+
+      continue;
+
+    }
+
+    const distance =
+      playerPos.distanceTo(
+        object.position
+      );
+
+    if (
+      distance < 3 &&
+      distance < closestDistance
+    ) {
+
+      closest =
+        object;
+
+      closestDistance =
+        distance;
+
+    }
+
+  }
+
+  return closest;
+
+}
+
+function interact() {
+
+  const object =
+    state.currentInteractable;
+
+  if (!object) {
+
+    return;
+
+  }
+
+  const type =
+    object.userData.interactable;
+
+  /* KEY */
+
+  if (
+    type === "key"
+  ) {
+
+    state.hasKey =
+      true;
+
+    key.visible =
+      false;
+
+    state.objective =
+      "Unlock the maintenance door.";
+
+    showEvent(
+      "MAINTENANCE KEY ACQUIRED",
+      2000
+    );
+
+    return;
+
+  }
+
+  /* DOOR */
+
+  if (
+    type === "door"
+  ) {
+
+    if (!state.hasKey) {
+
+      showEvent(
+        "LOCKED.\nI need a maintenance key.",
+        2000
+      );
+
+      return;
+
+    }
+
+    if (
+      !maintenanceDoor.open
+    ) {
+
+      maintenanceDoor.open =
         true;
 
-    cctvScreen.style.di
+      maintenanceDoor.mesh.rotation.y =
+        -Math.PI / 2;
+
+      state.objective =
+        "Enter the maintenance room and restore power.";
+
+      showEvent(
+        "The door opens.",
+        1500
+      );
+
+    }
+
+    return;
+
+  }
+
+  /* POWER */
+
+  if (
+    type === "power"
+  ) {
+
+    if (
+      state.powerRestored
+    ) {
+
+      showEvent(
+        "Power is already restored.",
+        1500
+      );
+
+      return;
+
+    }
+
+    state.powerRestored =
+      true;
+
+    state.objective =
+      "Go to the security room.";
+
+    showEvent(
+      "POWER RESTORED.\nSomething moved in the tunnel.",
+      3000
+    );
+
+    return;
+
+  }
+
+  /* CCTV */
+
+  if (
+    type === "cctv"
+  ) {
