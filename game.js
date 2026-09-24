@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { createStation } from "./station.js";
 
-// ============================================================
-// NIGHT SHIFT: 3:17 AM
-// FULL GAME CONTROLLER
-// ============================================================
+/* =========================================================
+   NIGHT SHIFT: 3:17 AM
+   GAME CONTROLLER
+========================================================= */
 
 const canvas = document.getElementById("gameCanvas");
 
@@ -12,9 +12,10 @@ if (!canvas) {
     throw new Error("gameCanvas was not found in index.html");
 }
 
-// ============================================================
-// SCENE
-// ============================================================
+
+/* =========================================================
+   SCENE
+========================================================= */
 
 const scene = new THREE.Scene();
 
@@ -25,9 +26,10 @@ scene.fog = new THREE.FogExp2(
     0.012
 );
 
-// ============================================================
-// CAMERA
-// ============================================================
+
+/* =========================================================
+   CAMERA
+========================================================= */
 
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -36,17 +38,23 @@ const camera = new THREE.PerspectiveCamera(
     400
 );
 
-camera.position.set(0, 2, 20);
+camera.position.set(
+    0,
+    2,
+    20
+);
+
 camera.rotation.order = "YXZ";
 
 scene.add(camera);
 
-// ============================================================
-// RENDERER
-// ============================================================
+
+/* =========================================================
+   RENDERER
+========================================================= */
 
 const renderer = new THREE.WebGLRenderer({
-    canvas,
+    canvas: canvas,
     antialias: true,
     powerPreference: "high-performance"
 });
@@ -57,33 +65,45 @@ renderer.setSize(
 );
 
 renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio || 1, 2)
+    Math.min(
+        window.devicePixelRatio || 1,
+        2
+    )
 );
 
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.type =
+    THREE.PCFSoftShadowMap;
 
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
+
 renderer.toneMappingExposure = 0.9;
 
-// ============================================================
-// LIGHTING
-// ============================================================
 
-const ambientLight = new THREE.HemisphereLight(
-    0x687080,
-    0x090a0d,
-    1.0
-);
+/* =========================================================
+   LIGHTING
+========================================================= */
+
+const ambientLight =
+    new THREE.HemisphereLight(
+        0x687080,
+        0x090a0d,
+        1.0
+    );
 
 scene.add(ambientLight);
 
-const stationLight = new THREE.DirectionalLight(
-    0xbfc7d8,
-    1.0
-);
+
+const stationLight =
+    new THREE.DirectionalLight(
+        0xbfc7d8,
+        1.0
+    );
 
 stationLight.position.set(
     20,
@@ -93,42 +113,69 @@ stationLight.position.set(
 
 stationLight.castShadow = true;
 
-stationLight.shadow.mapSize.width = 1024;
-stationLight.shadow.mapSize.height = 1024;
+stationLight.shadow.mapSize.width =
+    1024;
+
+stationLight.shadow.mapSize.height =
+    1024;
 
 scene.add(stationLight);
 
-// ============================================================
-// STATION
-// ============================================================
+
+/* =========================================================
+   STATION
+========================================================= */
 
 let stationData = null;
 
 try {
-    stationData = createStation(scene);
-    console.log("Station loaded:", stationData);
-} catch (error) {
-    console.error("STATION ERROR:", error);
 
-    // Keep the game visible even if station.js crashes.
-    const emergencyFloor = new THREE.Mesh(
-        new THREE.BoxGeometry(50, 1, 100),
-        new THREE.MeshStandardMaterial({
-            color: 0x33363b
-        })
+    stationData =
+        createStation(scene);
+
+    console.log(
+        "Station loaded:",
+        stationData
     );
+
+} catch (error) {
+
+    console.error(
+        "STATION ERROR:",
+        error
+    );
+
+    /*
+       Emergency floor so the game doesn't
+       become completely black if station.js
+       has an error.
+    */
+
+    const emergencyFloor =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                80,
+                1,
+                180
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x33363b
+            })
+        );
 
     emergencyFloor.position.y = -0.5;
 
-    scene.add(emergencyFloor);
+    scene.add(
+        emergencyFloor
+    );
 }
 
-// ============================================================
-// PLAYER
-// ============================================================
+
+/* =========================================================
+   PLAYER
+========================================================= */
 
 const PLAYER_HEIGHT = 2;
-const PLAYER_RADIUS = 0.45;
 
 let yaw = 0;
 let pitch = 0;
@@ -137,24 +184,38 @@ let mouseLocked = false;
 
 const keys = {};
 
-let gameStarted = false;
-let paused = false;
-
 const WALK_SPEED = 5.5;
 const SPRINT_SPEED = 9;
 
-// ============================================================
-// FLASHLIGHT
-// ============================================================
 
-const flashlight = new THREE.SpotLight(
-    0xffffff,
-    10,
-    42,
-    Math.PI / 7,
-    0.45,
-    1.5
-);
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let gameStarted = false;
+let paused = false;
+
+let gameMinutes = 23 * 60;
+
+let three17Triggered = false;
+
+let lastFrame =
+    performance.now();
+
+
+/* =========================================================
+   FLASHLIGHT
+========================================================= */
+
+const flashlight =
+    new THREE.SpotLight(
+        0xffffff,
+        10,
+        42,
+        Math.PI / 7,
+        0.45,
+        1.5
+    );
 
 flashlight.position.set(
     0,
@@ -164,12 +225,19 @@ flashlight.position.set(
 
 flashlight.castShadow = true;
 
-flashlight.shadow.mapSize.width = 512;
-flashlight.shadow.mapSize.height = 512;
+flashlight.shadow.mapSize.width =
+    512;
 
-camera.add(flashlight);
+flashlight.shadow.mapSize.height =
+    512;
 
-const flashlightTarget = new THREE.Object3D();
+camera.add(
+    flashlight
+);
+
+
+const flashlightTarget =
+    new THREE.Object3D();
 
 flashlightTarget.position.set(
     0,
@@ -177,40 +245,36 @@ flashlightTarget.position.set(
     -15
 );
 
-camera.add(flashlightTarget);
+camera.add(
+    flashlightTarget
+);
 
-flashlight.target = flashlightTarget;
+flashlight.target =
+    flashlightTarget;
 
 let flashlightOn = true;
+
 let battery = 100;
 
-// ============================================================
-// GAME TIME
-// ============================================================
 
-// Starts at 11:00 PM.
-// One real second = one game minute.
-
-let gameMinutes = 23 * 60;
-
-let three17Triggered = false;
-
-let lastFrame = performance.now();
-
-// ============================================================
-// START SHIFT
-// ============================================================
+/* =========================================================
+   START SHIFT
+========================================================= */
 
 window.addEventListener(
     "startShift",
     startShift
 );
 
+
 function startShift() {
 
-    if (gameStarted) return;
+    if (gameStarted) {
+        return;
+    }
 
     gameStarted = true;
+
     paused = false;
 
     camera.position.set(
@@ -228,7 +292,15 @@ function startShift() {
         0
     );
 
-    console.log("SHIFT STARTED");
+    flashlightOn = true;
+
+    battery = 100;
+
+    flashlight.visible = true;
+
+    console.log(
+        "NIGHT SHIFT STARTED"
+    );
 
     showObjective(
         "Begin your shift. Check the station."
@@ -236,26 +308,42 @@ function startShift() {
 
     updateHUD();
 
+    /*
+       Request mouse control.
+       Browsers only allow pointer lock
+       after a user click, and this event
+       happens from the NEW SHIFT button.
+    */
+
     tryPointerLock();
 }
 
-// ============================================================
-// POINTER LOCK
-// ============================================================
+
+/* =========================================================
+   POINTER LOCK
+========================================================= */
 
 function tryPointerLock() {
 
-    if (!document.pointerLockElement) {
+    if (
+        document.pointerLockElement
+    ) {
+        return;
+    }
 
-        try {
-            document.body.requestPointerLock();
-        } catch (error) {
-            console.log(
-                "Pointer lock unavailable."
-            );
-        }
+    try {
+
+        document.body.requestPointerLock();
+
+    } catch (error) {
+
+        console.log(
+            "Pointer lock unavailable."
+        );
+
     }
 }
+
 
 document.addEventListener(
     "pointerlockchange",
@@ -268,9 +356,10 @@ document.addEventListener(
     }
 );
 
-// ============================================================
-// MOUSE LOOK
-// ============================================================
+
+/* =========================================================
+   MOUSE LOOK
+========================================================= */
 
 document.addEventListener(
     "mousemove",
@@ -284,38 +373,50 @@ document.addEventListener(
             return;
         }
 
-        yaw -= event.movementX * 0.0022;
+        yaw -=
+            event.movementX * 0.0022;
 
-        pitch -= event.movementY * 0.0022;
+        pitch -=
+            event.movementY * 0.0022;
 
-        pitch = THREE.MathUtils.clamp(
-            pitch,
-            -Math.PI / 2.1,
-            Math.PI / 2.1
-        );
+        pitch =
+            THREE.MathUtils.clamp(
+                pitch,
+                -Math.PI / 2.1,
+                Math.PI / 2.1
+            );
 
-        camera.rotation.y = yaw;
-        camera.rotation.x = pitch;
+        camera.rotation.y =
+            yaw;
+
+        camera.rotation.x =
+            pitch;
+
     }
 );
 
-// ============================================================
-// CLICK
-// ============================================================
+
+/* =========================================================
+   CANVAS CLICK
+========================================================= */
 
 canvas.addEventListener(
     "click",
     () => {
 
-        if (!gameStarted) return;
+        if (!gameStarted) {
+            return;
+        }
 
         tryPointerLock();
+
     }
 );
 
-// ============================================================
-// KEYBOARD
-// ============================================================
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
 
 window.addEventListener(
     "keydown",
@@ -323,97 +424,126 @@ window.addEventListener(
 
         keys[event.code] = true;
 
-        // Prevent browser scrolling with space.
         if (
             event.code === "Space" ||
             event.code.startsWith("Arrow")
         ) {
+
             event.preventDefault();
+
         }
 
-        // Flashlight
+
         if (
             event.code === "KeyF" &&
             !event.repeat
         ) {
+
             toggleFlashlight();
+
         }
 
-        // Interaction
+
         if (
             event.code === "KeyE" &&
             !event.repeat
         ) {
+
             interact();
+
         }
 
-        // Recharge
+
         if (
             event.code === "KeyR" &&
             !event.repeat
         ) {
+
             rechargeFlashlight();
+
         }
 
-        // Pause
+
         if (
             event.code === "Escape" &&
             !event.repeat
         ) {
+
             togglePause();
+
         }
+
     }
 );
+
 
 window.addEventListener(
     "keyup",
     event => {
+
         keys[event.code] = false;
+
     }
 );
 
-// ============================================================
-// FLASHLIGHT
-// ============================================================
+
+/* =========================================================
+   FLASHLIGHT
+========================================================= */
 
 function toggleFlashlight() {
 
-    if (!gameStarted) return;
+    if (!gameStarted) {
+        return;
+    }
 
-    flashlightOn = !flashlightOn;
+    flashlightOn =
+        !flashlightOn;
 
     flashlight.visible =
-        flashlightOn && battery > 0;
+        flashlightOn &&
+        battery > 0;
 
     showInteraction(
         flashlightOn
             ? "FLASHLIGHT ON"
             : "FLASHLIGHT OFF"
     );
+
 }
+
 
 function rechargeFlashlight() {
 
-    if (!gameStarted) return;
+    if (!gameStarted) {
+        return;
+    }
 
-    battery = Math.min(
-        100,
-        battery + 25
-    );
+    battery =
+        Math.min(
+            100,
+            battery + 25
+        );
 
     showInteraction(
         "Battery restored"
     );
 
     updateHUD();
+
 }
 
-// ============================================================
-// MOVEMENT
-// ============================================================
 
-const forward = new THREE.Vector3();
-const right = new THREE.Vector3();
+/* =========================================================
+   MOVEMENT
+========================================================= */
+
+const forward =
+    new THREE.Vector3();
+
+const right =
+    new THREE.Vector3();
+
 
 function updateMovement(delta) {
 
@@ -426,6 +556,7 @@ function updateMovement(delta) {
 
     let forwardInput = 0;
     let sideInput = 0;
+
 
     if (keys["KeyW"]) {
         forwardInput += 1;
@@ -443,6 +574,7 @@ function updateMovement(delta) {
         sideInput -= 1;
     }
 
+
     if (
         forwardInput === 0 &&
         sideInput === 0
@@ -450,13 +582,22 @@ function updateMovement(delta) {
         return;
     }
 
-    const length = Math.sqrt(
-        forwardInput * forwardInput +
-        sideInput * sideInput
-    );
 
-    forwardInput /= length;
-    sideInput /= length;
+    const length =
+        Math.sqrt(
+            forwardInput *
+                forwardInput +
+            sideInput *
+                sideInput
+        );
+
+
+    forwardInput /=
+        length;
+
+    sideInput /=
+        length;
+
 
     forward.set(
         -Math.sin(yaw),
@@ -464,45 +605,61 @@ function updateMovement(delta) {
         -Math.cos(yaw)
     );
 
+
     right.set(
         Math.cos(yaw),
         0,
         -Math.sin(yaw)
     );
 
+
     const sprinting =
         keys["ShiftLeft"] ||
         keys["ShiftRight"];
+
 
     const speed =
         sprinting
             ? SPRINT_SPEED
             : WALK_SPEED;
 
+
     const movement =
         new THREE.Vector3();
 
+
     movement.addScaledVector(
         forward,
-        forwardInput * speed * delta
+        forwardInput *
+            speed *
+            delta
     );
+
 
     movement.addScaledVector(
         right,
-        sideInput * speed * delta
+        sideInput *
+            speed *
+            delta
     );
+
 
     camera.position.add(
         movement
     );
 
-    // Station boundaries.
+
+    /*
+       Basic world boundaries.
+    */
+
     camera.position.x =
         THREE.MathUtils.clamp(
             camera.position.x,
             -7.5,
             41.5
         );
+
 
     camera.position.z =
         THREE.MathUtils.clamp(
@@ -511,13 +668,16 @@ function updateMovement(delta) {
             82
         );
 
+
     camera.position.y =
         PLAYER_HEIGHT;
+
 }
 
-// ============================================================
-// FLASHLIGHT BATTERY
-// ============================================================
+
+/* =========================================================
+   FLASHLIGHT BATTERY
+========================================================= */
 
 function updateFlashlight(delta) {
 
@@ -529,12 +689,17 @@ function updateFlashlight(delta) {
         return;
     }
 
-    battery -= delta * 0.45;
 
-    battery = Math.max(
-        0,
-        battery
-    );
+    battery -=
+        delta * 0.45;
+
+
+    battery =
+        Math.max(
+            0,
+            battery
+        );
+
 
     if (battery <= 0) {
 
@@ -545,14 +710,18 @@ function updateFlashlight(delta) {
         showInteraction(
             "FLASHLIGHT BATTERY DEAD"
         );
+
     }
 
+
     updateHUD();
+
 }
 
-// ============================================================
-// GAME CLOCK
-// ============================================================
+
+/* =========================================================
+   GAME CLOCK
+========================================================= */
 
 function updateGameClock(delta) {
 
@@ -563,37 +732,58 @@ function updateGameClock(delta) {
         return;
     }
 
-    // 1 second = 1 minute.
-    gameMinutes += delta * 60;
+
+    /*
+       One real second = one game minute.
+       This makes 11 PM -> 3:17 AM take
+       roughly 4 minutes and 17 seconds.
+    */
+
+    gameMinutes +=
+        delta * 60;
+
 
     if (gameMinutes >= 1440) {
+
         gameMinutes -= 1440;
+
     }
 
+
     const hour =
-        Math.floor(gameMinutes / 60);
+        Math.floor(
+            gameMinutes / 60
+        );
+
 
     const minute =
-        Math.floor(gameMinutes % 60);
+        Math.floor(
+            gameMinutes % 60
+        );
 
-    // 3:17 AM
+
     if (
         hour === 3 &&
         minute === 17 &&
         !three17Triggered
     ) {
+
         trigger317();
+
     }
+
 
     updateTimeDisplay(
         hour,
         minute
     );
+
 }
 
-// ============================================================
-// TIME DISPLAY
-// ============================================================
+
+/* =========================================================
+   TIME DISPLAY
+========================================================= */
 
 function updateTimeDisplay(
     hour,
@@ -605,82 +795,113 @@ function updateTimeDisplay(
             "gameTime"
         );
 
-    if (!element) return;
+
+    if (!element) {
+        return;
+    }
+
 
     let displayHour =
         hour % 12;
 
+
     if (displayHour === 0) {
         displayHour = 12;
     }
+
 
     const period =
         hour >= 12
             ? "PM"
             : "AM";
 
+
     element.textContent =
-        `${displayHour}:${String(minute).padStart(2, "0")} ${period}`;
+        `${displayHour}:${String(
+            minute
+        ).padStart(2, "0")} ${period}`;
+
 }
 
-// ============================================================
-// 3:17 EVENT
-// ============================================================
+
+/* =========================================================
+   3:17 EVENT
+========================================================= */
 
 function trigger317() {
 
     three17Triggered = true;
 
+
     console.log(
         "THE CLOCK HAS REACHED 3:17 AM"
     );
 
-    // Darken station.
-    ambientLight.intensity = 0.25;
-    stationLight.intensity = 0.25;
+
+    ambientLight.intensity =
+        0.25;
+
+
+    stationLight.intensity =
+        0.25;
+
 
     scene.background.set(
         0x010103
     );
 
+
     scene.fog.color.set(
         0x010103
     );
 
-    scene.fog.density = 0.026;
+
+    scene.fog.density =
+        0.026;
+
 
     showEventMessage(
         "3:17 AM"
     );
 
+
     setTimeout(
         () => {
+
             showEventMessage(
                 "Please remain on the platform."
             );
+
         },
         2500
     );
 
+
     setTimeout(
         () => {
+
             showObjective(
                 "Something is wrong. Check the platform."
             );
+
         },
         6000
     );
 
+
     flickerStation();
+
 }
 
-// ============================================================
-// LIGHT FLICKER
-// ============================================================
+
+/* =========================================================
+   STATION LIGHT FLICKER
+========================================================= */
 
 function flickerStation() {
 
     let flashes = 0;
+
 
     const interval =
         setInterval(
@@ -688,15 +909,18 @@ function flickerStation() {
 
                 flashes++;
 
+
                 ambientLight.intensity =
                     flashes % 2 === 0
                         ? 0.25
                         : 0.06;
 
+
                 stationLight.intensity =
                     flashes % 2 === 0
                         ? 0.25
                         : 0.05;
+
 
                 if (flashes >= 14) {
 
@@ -704,27 +928,36 @@ function flickerStation() {
                         interval
                     );
 
+
                     ambientLight.intensity =
                         0.2;
 
+
                     stationLight.intensity =
                         0.2;
+
                 }
 
             },
             180
         );
+
 }
 
-// ============================================================
-// INTERACTION
-// ============================================================
+
+/* =========================================================
+   INTERACTION
+========================================================= */
 
 const raycaster =
     new THREE.Raycaster();
 
 const interactionVector =
-    new THREE.Vector2(0, 0);
+    new THREE.Vector2(
+        0,
+        0
+    );
+
 
 function interact() {
 
@@ -735,33 +968,41 @@ function interact() {
         return;
     }
 
+
     raycaster.setFromCamera(
         interactionVector,
         camera
     );
 
-    const objects =
-        scene.children;
 
     const hits =
         raycaster.intersectObjects(
-            objects,
+            scene.children,
             true
         );
 
-    if (hits.length === 0) {
+
+    if (
+        hits.length === 0
+    ) {
 
         showInteraction(
             "Nothing to interact with."
         );
 
         return;
+
     }
+
 
     const object =
         hits[0].object;
 
-    // CCTV
+
+    /*
+       CCTV
+    */
+
     if (
         object.userData &&
         object.userData.isCCTV
@@ -770,18 +1011,26 @@ function interact() {
         const number =
             object.userData.cameraNumber;
 
+
         showEventMessage(
             `CAMERA ${number}`
         );
+
 
         showObjective(
             `CCTV ${number}: something moved.`
         );
 
+
         return;
+
     }
 
-    // Electrical panel
+
+    /*
+       Electrical panel
+    */
+
     if (
         object.name ===
         "ElectricalPanel"
@@ -792,52 +1041,71 @@ function interact() {
         );
 
         return;
+
     }
+
 
     showInteraction(
         "Nothing happens."
     );
+
 }
 
-// ============================================================
-// PAUSE
-// ============================================================
+
+/* =========================================================
+   PAUSE
+========================================================= */
 
 function togglePause() {
 
-    if (!gameStarted) return;
+    if (!gameStarted) {
+        return;
+    }
 
-    paused = !paused;
+
+    paused =
+        !paused;
+
 
     const pauseScreen =
         document.getElementById(
             "pauseScreen"
         );
 
-    if (!pauseScreen) return;
+
+    if (!pauseScreen) {
+        return;
+    }
+
 
     pauseScreen.classList.toggle(
         "hidden",
         !paused
     );
 
+
     if (paused) {
 
         if (
             document.exitPointerLock
         ) {
+
             document.exitPointerLock();
+
         }
 
     } else {
 
         tryPointerLock();
+
     }
+
 }
 
-// ============================================================
-// HUD
-// ============================================================
+
+/* =========================================================
+   HUD
+========================================================= */
 
 function updateHUD() {
 
@@ -846,29 +1114,39 @@ function updateHUD() {
             "battery"
         );
 
+
     if (batteryElement) {
 
         batteryElement.textContent =
-            `BATTERY ${Math.round(battery)}%`;
+            `BATTERY ${Math.round(
+                battery
+            )}%`;
+
     }
+
 
     const mission =
         document.getElementById(
             "mission"
         );
 
+
     if (
         mission &&
         !three17Triggered
     ) {
+
         mission.textContent =
             "NIGHT SHIFT — 11:00 PM";
+
     }
+
 }
 
-// ============================================================
-// OBJECTIVE
-// ============================================================
+
+/* =========================================================
+   OBJECTIVE
+========================================================= */
 
 function showObjective(text) {
 
@@ -877,15 +1155,21 @@ function showObjective(text) {
             "objective"
         );
 
-    if (!element) return;
+
+    if (!element) {
+        return;
+    }
+
 
     element.textContent =
         text;
+
 }
 
-// ============================================================
-// INTERACTION MESSAGE
-// ============================================================
+
+/* =========================================================
+   INTERACTION MESSAGE
+========================================================= */
 
 function showInteraction(text) {
 
@@ -894,30 +1178,42 @@ function showInteraction(text) {
             "interaction"
         );
 
-    if (!element) return;
+
+    if (!element) {
+        return;
+    }
+
 
     element.textContent =
         text;
 
-    element.style.opacity = "1";
+
+    element.style.opacity =
+        "1";
+
 
     clearTimeout(
         showInteraction.timeout
     );
 
+
     showInteraction.timeout =
         setTimeout(
             () => {
+
                 element.style.opacity =
                     "0";
+
             },
             1800
         );
+
 }
 
-// ============================================================
-// EVENT MESSAGE
-// ============================================================
+
+/* =========================================================
+   EVENT MESSAGE
+========================================================= */
 
 function showEventMessage(text) {
 
@@ -926,17 +1222,24 @@ function showEventMessage(text) {
             "eventMessage"
         );
 
-    if (!element) return;
+
+    if (!element) {
+        return;
+    }
+
 
     element.textContent =
         text;
 
+
     element.style.display =
         "block";
+
 
     clearTimeout(
         showEventMessage.timeout
     );
+
 
     showEventMessage.timeout =
         setTimeout(
@@ -948,11 +1251,13 @@ function showEventMessage(text) {
             },
             3500
         );
+
 }
 
-// ============================================================
-// RESIZE
-// ============================================================
+
+/* =========================================================
+   RESIZE
+========================================================= */
 
 window.addEventListener(
     "resize",
@@ -962,29 +1267,42 @@ window.addEventListener(
             window.innerWidth /
             window.innerHeight;
 
+
         camera.updateProjectionMatrix();
+
 
         renderer.setSize(
             window.innerWidth,
             window.innerHeight
         );
 
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                2
+            )
+        );
+
     }
 );
 
-// ============================================================
-// INITIAL HUD
-// ============================================================
+
+/* =========================================================
+   INITIAL HUD
+========================================================= */
 
 updateHUD();
 
+
 console.log(
-    "NIGHT SHIFT 3:17 AM loaded."
+    "NIGHT SHIFT: 3:17 AM loaded successfully."
 );
 
-// ============================================================
-// GAME LOOP
-// ============================================================
+
+/* =========================================================
+   GAME LOOP
+========================================================= */
 
 function animate() {
 
@@ -992,8 +1310,10 @@ function animate() {
         animate
     );
 
+
     const now =
         performance.now();
+
 
     const delta =
         Math.min(
@@ -1001,18 +1321,30 @@ function animate() {
             0.05
         );
 
-    lastFrame = now;
 
-    updateMovement(delta);
+    lastFrame =
+        now;
 
-    updateFlashlight(delta);
 
-    updateGameClock(delta);
+    updateMovement(
+        delta
+    );
+
+
+    updateFlashlight(
+        delta
+    );
+
+
+        updateGameClock(
+        delta
+    );
 
     renderer.render(
         scene,
         camera
     );
+
 }
 
 animate();
