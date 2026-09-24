@@ -1,1001 +1,998 @@
-// ============================================================
-// NIGHT SHIFT: 3:17 AM
-// S1 — LARGE METRO STATION
-// ============================================================
-
 import * as THREE from "three";
 
 export function createStation(scene) {
-    const station = new THREE.Group();
-    station.name = "NightShiftStation";
-    scene.add(station);
+    const root = new THREE.Group();
+    root.name = "NightShiftStation";
+    scene.add(root);
 
-    // --------------------------------------------------------
-    // MATERIALS
-    // --------------------------------------------------------
-
-    const concrete = new THREE.MeshStandardMaterial({
-        color: 0x383b40,
-        roughness: 0.95
-    });
-
-    const darkConcrete = new THREE.MeshStandardMaterial({
-        color: 0x202329,
-        roughness: 1
-    });
-
-    const floorMat = new THREE.MeshStandardMaterial({
-        color: 0x565960,
-        roughness: 0.9
-    });
-
-    const tileMat = new THREE.MeshStandardMaterial({
-        color: 0x73767b,
-        roughness: 0.75
-    });
-
-    const blackMat = new THREE.MeshStandardMaterial({
-        color: 0x111317,
-        roughness: 0.9
-    });
-
-    const metalMat = new THREE.MeshStandardMaterial({
-        color: 0x4d5259,
-        metalness: 0.75,
-        roughness: 0.35
-    });
-
-    const yellowMat = new THREE.MeshStandardMaterial({
-        color: 0xb59b32,
-        roughness: 0.7
-    });
-
-    const redMat = new THREE.MeshStandardMaterial({
-        color: 0x761d1d,
-        roughness: 0.8
-    });
-
-    const glassMat = new THREE.MeshStandardMaterial({
-        color: 0x15252a,
-        transparent: true,
-        opacity: 0.45,
-        roughness: 0.15,
-        metalness: 0.2
-    });
-
-    const whiteMat = new THREE.MeshStandardMaterial({
-        color: 0xbfc3c7,
-        roughness: 0.8
-    });
-
-    // --------------------------------------------------------
-    // HELPERS
-    // --------------------------------------------------------
-
-    function box(
-        x, y, z,
-        sx, sy, sz,
-        material = concrete,
-        parent = station
-    ) {
-        const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(sx, sy, sz),
-            material
-        );
-
-        mesh.position.set(x, y, z);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        parent.add(mesh);
-        return mesh;
-    }
-
-    function cylinder(
-        x, y, z,
-        radius,
-        height,
-        material = metalMat,
-        parent = station
-    ) {
-        const mesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(radius, radius, height, 16),
-            material
-        );
-
-        mesh.position.set(x, y, z);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        parent.add(mesh);
-        return mesh;
-    }
-
-    function textSign(text, x, y, z, rotationY = 0) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 512;
-        canvas.height = 128;
-
-        const ctx = canvas.getContext("2d");
-
-        ctx.fillStyle = "#111111";
-        ctx.fillRect(0, 0, 512, 128);
-
-        ctx.fillStyle = "#dddddd";
-        ctx.font = "bold 48px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, 256, 64);
-
-        const texture = new THREE.CanvasTexture(canvas);
-
-        const material = new THREE.MeshBasicMaterial({
-            map: texture
+    function mat(color, roughness=0.85, metalness=0.05) {
+        return new THREE.MeshStandardMaterial({
+            color,
+            roughness,
+            metalness
         });
+    }
 
-        const mesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(4.5, 1.1),
+    const mats = {
+        floor: mat(0x34373b,0.9),
+        floorDark: mat(0x202327,0.95),
+        concrete: mat(0x4a4d50),
+        concreteDark: mat(0x292c30,0.98),
+        metal: mat(0x50545a,0.8,0.35),
+        rust: mat(0x4b3028),
+        yellow: mat(0xb08b34,0.8),
+        white: mat(0xc8c8c2,0.85),
+        black: mat(0x08090a,1),
+        glass: new THREE.MeshStandardMaterial({
+            color:0x182126,
+            roughness:0.25,
+            metalness:0.2,
+            transparent:true,
+            opacity:0.72
+        }),
+        red:mat(0x5c1818,0.8),
+        green:mat(0x294438,0.8)
+    };
+
+    function box(name,x,y,z,sx,sy,sz,material,cast=false) {
+        const m=new THREE.Mesh(
+            new THREE.BoxGeometry(sx,sy,sz),
             material
         );
-
-        mesh.position.set(x, y, z);
-        mesh.rotation.y = rotationY;
-
-        station.add(mesh);
-
-        return mesh;
+        m.name=name;
+        m.position.set(x,y,z);
+        m.castShadow=cast;
+        m.receiveShadow=true;
+        root.add(m);
+        return m;
     }
 
-    function ceilingLight(x, y, z) {
-        const fixture = box(
-            x,
-            y,
-            z,
-            2.8,
-            0.12,
-            0.35,
-            whiteMat
+    function cyl(name,x,y,z,r,h,material,rx=0,rz=0) {
+        const m=new THREE.Mesh(
+            new THREE.CylinderGeometry(r,r,h,16),
+            material
         );
-
-        const light = new THREE.PointLight(
-            0xffffff,
-            1.4,
-            18
-        );
-
-        light.position.set(x, y - 0.1, z);
-        light.castShadow = true;
-
-        station.add(light);
-
-        fixture.userData.light = light;
-
-        return fixture;
+        m.name=name;
+        m.position.set(x,y,z);
+        m.rotation.x=rx;
+        m.rotation.z=rz;
+        m.castShadow=true;
+        m.receiveShadow=true;
+        root.add(m);
+        return m;
     }
 
-    function bench(x, y, z, rotation = 0) {
-        const group = new THREE.Group();
+    function textSprite(text,x,y,z,size=0.7,color="#b8b8b0") {
+        const c=document.createElement("canvas");
+        c.width=512;
+        c.height=128;
 
-        const seat = box(
-            0,
-            0.9,
-            0,
-            3.5,
-            0.18,
-            0.65,
-            metalMat,
-            group
+        const ctx=c.getContext("2d");
+        ctx.clearRect(0,0,512,128);
+        ctx.font="bold 42px Arial";
+        ctx.fillStyle=color;
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillText(text,256,64);
+
+        const tex=new THREE.CanvasTexture(c);
+        tex.colorSpace=THREE.SRGBColorSpace;
+
+        const sprite=new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map:tex,
+                transparent:true,
+                depthWrite:false
+            })
         );
 
-        const back = box(
-            0,
-            1.55,
-            0.25,
-            3.5,
-            1.1,
-            0.12,
-            metalMat,
-            group
+        sprite.position.set(x,y,z);
+        sprite.scale.set(size*4,size,1);
+
+        root.add(sprite);
+        return sprite;
+    }
+
+    function light(x,y,z,intensity=2.2,color=0xd9e2e8,distance=18) {
+        const l=new THREE.PointLight(
+            color,
+            intensity,
+            distance,
+            2
         );
 
-        for (const px of [-1.35, 0, 1.35]) {
-            box(
-                px,
-                0.45,
-                0,
-                0.12,
-                0.9,
-                0.12,
-                metalMat,
-                group
-            );
+        l.position.set(x,y,z);
+        l.castShadow=false;
+        root.add(l);
+
+        return l;
+    }
+
+    function fluorescent(x,y,z,length=5,broken=false) {
+        box(
+            "CeilingLight",
+            x,y,z,
+            length,0.10,0.22,
+            mats.white
+        );
+
+        const l=light(
+            x,y-0.15,z,
+            broken?0.35:2.2,
+            0xdce8ef,
+            15
+        );
+
+        if(broken) {
+            l.userData.flicker=true;
+            l.userData.base=0.35;
         }
 
-        group.position.set(x, y, z);
-        group.rotation.y = rotation;
-
-        station.add(group);
-
-        return group;
+        return l;
     }
 
-    function trashBin(x, y, z) {
-        cylinder(
-            x,
-            y + 0.55,
+
+    /* =========================
+       HUGE STATION STRUCTURE
+    ========================= */
+
+    box(
+        "MainFloor",
+        17,-0.25,-23,
+        49,0.5,210,
+        mats.floor
+    );
+
+    box(
+        "Ceiling",
+        17,10,-23,
+        49,0.35,210,
+        mats.concreteDark
+    );
+
+    box(
+        "WestWall",
+        -8.7,5,-23,
+        0.7,10,210,
+        mats.concreteDark
+    );
+
+    box(
+        "EastWall",
+        42.7,5,-23,
+        0.7,10,210,
+        mats.concreteDark
+    );
+
+
+    /* =========================
+       MAIN PLATFORM
+    ========================= */
+
+    box(
+        "Platform",
+        17,0.15,-3,
+        22,0.5,126,
+        mats.concrete
+    );
+
+    box(
+        "PlatformEdge",
+        17,0.43,-3,
+        1,0.10,126,
+        mats.yellow
+    );
+
+
+    /* =========================
+       TRACKS
+    ========================= */
+
+    box(
+        "TrackBed",
+        2.8,-0.15,-3,
+        7.2,0.25,126,
+        mats.black
+    );
+
+    box(
+        "TrackBed2",
+        7.5,-0.15,-3,
+        1.5,0.25,126,
+        mats.black
+    );
+
+    for(let z=-64;z<=58;z+=3.2) {
+        box(
+            "Sleeper",
+            5.2,0.02,z,
+            6.8,0.18,0.42,
+            mats.rust
+        );
+    }
+
+    box(
+        "RailA",
+        3.8,0.28,-3,
+        0.14,0.18,126,
+        mats.metal
+    );
+
+    box(
+        "RailB",
+        6.6,0.28,-3,
+        0.14,0.18,126,
+        mats.metal
+    );
+
+
+    /* second distant track */
+
+    box(
+        "FarTrack",
+        31,-0.12,-3,
+        8,0.22,126,
+        mats.black
+    );
+
+    box(
+        "FarRailA",
+        29.2,0.28,-3,
+        0.13,0.16,126,
+        mats.metal
+    );
+
+    box(
+        "FarRailB",
+        33.4,0.28,-3,
+        0.13,0.16,126,
+        mats.metal
+    );
+
+
+    /* =========================
+       PILLARS + LIGHTS
+    ========================= */
+
+    for(let z=-58;z<=52;z+=11) {
+
+        box(
+            "Pillar",
+            12,4.8,z,
+            1.2,9,1.2,
+            mats.concreteDark,
+            true
+        );
+
+        box(
+            "Pillar",
+            22,4.8,z,
+            1.2,9,1.2,
+            mats.concreteDark,
+            true
+        );
+
+        fluorescent(
+            17,
+            9.55,
             z,
-            0.35,
-            1.1,
-            blackMat
+            5,
+            z%22===0
+        );
+    }
+
+
+    /* =========================
+       BENCHES
+    ========================= */
+
+    for(let z=-42;z<=38;z+=20) {
+
+        box(
+            "BenchSeat",
+            17,1.35,z,
+            5.4,0.22,0.8,
+            mats.metal,
+            true
         );
 
         box(
-            x,
-            y + 1.15,
-            z,
-            0.5,
-            0.12,
-            0.5,
-            metalMat
-        );
-    }
-
-    function pillar(x, y, z) {
-        cylinder(
-            x,
-            y + 2.8,
-            z,
-            0.42,
-            5.6,
-            concrete
+            "BenchBack",
+            17,2.15,z+0.3,
+            5.4,1,0.18,
+            mats.metal,
+            true
         );
 
-        box(
-            x,
-            y + 5.55,
-            z,
-            1.2,
-            0.35,
-            1.2,
-            darkConcrete
-        );
-    }
-
-    // ========================================================
-    // MAIN PLATFORM
-    // ========================================================
-
-    // Platform 1
-    box(
-        0,
-        -0.5,
-        -20,
-        20,
-        1,
-        100,
-        floorMat
-    );
-
-    // Platform 2
-    box(
-        28,
-        -0.5,
-        -20,
-        16,
-        1,
-        100,
-        floorMat
-    );
-
-    // Track trench
-    box(
-        14,
-        -1.2,
-        -20,
-        12,
-        0.5,
-        100,
-        blackMat
-    );
-
-    // --------------------------------------------------------
-    // RAILS
-    // --------------------------------------------------------
-
-    for (const x of [11, 17]) {
-        box(
-            x,
-            -0.7,
-            -20,
-            0.18,
-            0.18,
-            100,
-            metalMat
-        );
-    }
-
-    for (let z = -68; z <= 28; z += 2.2) {
-        box(
-            14,
-            -0.9,
-            z,
-            8,
-            0.15,
-            0.22,
-            metalMat
-        );
-    }
-
-    // --------------------------------------------------------
-    // PLATFORM EDGE
-    // --------------------------------------------------------
-
-    box(
-        8.9,
-        0.05,
-        -20,
-        0.35,
-        0.15,
-        100,
-        yellowMat
-    );
-
-    box(
-        35.9,
-        0.05,
-        -20,
-        0.35,
-        0.15,
-        100,
-        yellowMat
-    );
-
-    // ========================================================
-    // WALLS / CEILING
-    // ========================================================
-
-    box(
-        -10,
-        4,
-        -20,
-        1,
-        9,
-        110,
-        darkConcrete
-    );
-
-    box(
-        44,
-        4,
-        -20,
-        1,
-        9,
-        110,
-        darkConcrete
-    );
-
-    box(
-        17,
-        9,
-        -20,
-        56,
-        0.5,
-        110,
-        darkConcrete
-    );
-
-    // Back wall
-    box(
-        17,
-        4,
-        35,
-        56,
-        9,
-        1,
-        concrete
-    );
-
-    // ========================================================
-    // PILLARS
-    // ========================================================
-
-    for (let z = 27; z >= -66; z -= 12) {
-        pillar(3, 0, z);
-        pillar(32, 0, z);
-    }
-
-    // ========================================================
-    // CEILING LIGHTS
-    // ========================================================
-
-    for (let z = 27; z >= -65; z -= 9) {
-        ceilingLight(2, 8.5, z);
-        ceilingLight(32, 8.5, z);
-    }
-
-    // ========================================================
-    // BENCHES
-    // ========================================================
-
-    bench(-2, 0, 18, Math.PI / 2);
-    bench(-2, 0, 4, Math.PI / 2);
-    bench(-2, 0, -12, Math.PI / 2);
-    bench(-2, 0, -30, Math.PI / 2);
-    bench(38, 0, 12, -Math.PI / 2);
-    bench(38, 0, -8, -Math.PI / 2);
-    bench(38, 0, -28, -Math.PI / 2);
-
-    // Trash bins
-    trashBin(5, 0, 18);
-    trashBin(5, 0, -18);
-    trashBin(36, 0, 5);
-    trashBin(36, 0, -35);
-
-    // ========================================================
-    // STATION SIGNS
-    // ========================================================
-
-    textSign(
-        "PLATFORM 1",
-        -5,
-        4.8,
-        -8,
-        Math.PI / 2
-    );
-
-    textSign(
-        "PLATFORM 2",
-        39,
-        4.8,
-        -8,
-        -Math.PI / 2
-    );
-
-    textSign(
-        "LAST TRAIN",
-        3,
-        4.5,
-        25
-    );
-
-    // ========================================================
-    // TICKET HALL
-    // ========================================================
-
-    const hallZ = 58;
-
-    // Floor
-    box(
-        17,
-        -0.5,
-        hallZ,
-        56,
-        1,
-        42,
-        tileMat
-    );
-
-    // Walls
-    box(
-        -10,
-        4,
-        hallZ,
-        1,
-        9,
-        42,
-        concrete
-    );
-
-    box(
-        44,
-        4,
-        hallZ,
-        1,
-        9,
-        42,
-        concrete
-    );
-
-    box(
-        17,
-        4,
-        79,
-        56,
-        9,
-        1,
-        concrete
-    );
-
-    box(
-        17,
-        9,
-        hallZ,
-        56,
-        0.5,
-        42,
-        darkConcrete
-    );
-
-    // Hall pillars
-    for (let x = -5; x <= 39; x += 11) {
-        pillar(x, 0, 50);
-        pillar(x, 0, 67);
-    }
-
-    // Hall lights
-    for (let x = -3; x <= 37; x += 10) {
-        ceilingLight(x, 8.5, 48);
-        ceilingLight(x, 8.5, 65);
-        ceilingLight(x, 8.5, 75);
-    }
-
-    // ========================================================
-    // TICKET BOOTHS
-    // ========================================================
-
-    for (let x = -4; x <= 28; x += 8) {
-        box(
-            x,
-            1.3,
-            70,
-            5.5,
-            2.6,
-            1.2,
-            darkConcrete
-        );
-
-        box(
-            x,
-            2.4,
-            69.3,
-            4.5,
-            1,
-            0.1,
-            glassMat
-        );
-    }
-
-    textSign(
-        "TICKETS",
-        17,
-        5.5,
-        76
-    );
-
-    // ========================================================
-    // TURNSTILES
-    // ========================================================
-
-    for (let x = -2; x <= 34; x += 4) {
-        box(
-            x,
-            0.7,
-            45,
-            1.2,
-            1.4,
-            1,
-            metalMat
-        );
-
-        box(
-            x,
-            1.5,
-            45,
-            0.12,
-            0.8,
-            1.8,
-            glassMat
-        );
-    }
-
-    // ========================================================
-    // STAIRCASE
-    // ========================================================
-
-    function staircase(x, z) {
-        for (let i = 0; i < 12; i++) {
+        for(let x=15.2;x<=18.8;x+=1.8) {
             box(
-                x,
-                i * 0.22,
-                z + i * 0.65,
-                7,
-                0.44,
-                0.7,
-                concrete
+                "BenchLeg",
+                x,0.7,z,
+                0.18,1.2,0.18,
+                mats.metal
             );
         }
-
-        box(
-            x,
-            3,
-            z + 4,
-            7.5,
-            0.15,
-            8.5,
-            metalMat
-        );
     }
 
-    staircase(-3, 50);
-    staircase(37, 50);
 
-    textSign(
+    /* =========================
+       SIGNS
+    ========================= */
+
+    textSprite(
+        "PLATFORM 02",
+        17,4.3,48,
+        0.8
+    );
+
+    textSprite(
         "EXIT",
-        -3,
-        5,
-        48,
-        Math.PI / 2
+        17,3.4,28,
+        0.65
     );
 
-    // ========================================================
-    // VENDING MACHINES
-    // ========================================================
-
-    function vendingMachine(x, z) {
-        box(
-            x,
-            1.8,
-            z,
-            1.5,
-            3.6,
-            0.7,
-            blackMat
-        );
-
-        box(
-            x,
-            2,
-            z - 0.38,
-            1.15,
-            1.8,
-            0.04,
-            glassMat
-        );
-
-        box(
-            x,
-            0.65,
-            z - 0.4,
-            1.15,
-            0.35,
-            0.05,
-            redMat
-        );
-    }
-
-    vendingMachine(37, 65);
-    vendingMachine(34, 65);
-
-    // ========================================================
-    // SECURITY ROOM
-    // ========================================================
-
-    const security = new THREE.Group();
-    security.name = "SecurityRoom";
-    station.add(security);
-
-    // Room located on side of ticket hall
-    box(
-        -5,
-        3,
-        60,
-        9,
-        6,
-        13,
-        darkConcrete,
-        security
-    );
-
-    // Door opening look
-    box(
-        -5,
-        2.5,
-        53.3,
-        3,
-        5,
-        0.3,
-        blackMat,
-        security
-    );
-
-    textSign(
+    textSprite(
         "SECURITY",
-        -5,
-        5,
-        53
+        31,3.4,28,
+        0.55
     );
 
-    // CCTV monitors
-    for (let i = 0; i < 12; i++) {
-        const row = Math.floor(i / 4);
-        const col = i % 4;
-
-        const monitor = box(
-            -8 + col * 2,
-            3.5 - row * 2,
-            61,
-            1.5,
-            1,
-            0.25,
-            blackMat,
-            security
-        );
-
-        monitor.userData.cameraNumber = i + 1;
-        monitor.userData.isCCTV = true;
-    }
-
-    // Security desk
-    box(
-        -5,
-        1,
-        66,
-        7,
-        1.8,
-        2.5,
-        darkConcrete,
-        security
-    );
-
-    // ========================================================
-    // MAINTENANCE AREA
-    // ========================================================
-
-    const maintenanceZ = -78;
-
-    // Tunnel entrance walls
-    box(
-        -6,
-        3,
-        maintenanceZ,
-        5,
-        6,
-        20,
-        darkConcrete
-    );
-
-    box(
-        37,
-        3,
-        maintenanceZ,
-        5,
-        6,
-        20,
-        darkConcrete
-    );
-
-    // Tunnel ceiling
-    box(
-        15.5,
-        7,
-        maintenanceZ,
-        38,
-        1,
-        20,
-        darkConcrete
-    );
-
-    // Tunnel floor
-    box(
-        15.5,
-        -0.5,
-        maintenanceZ,
-        38,
-        1,
-        20,
-        darkConcrete
-    );
-
-    // Maintenance corridor lights
-    for (let z = -72; z >= -86; z -= 5) {
-        ceilingLight(15, 6.5, z);
-    }
-
-    textSign(
+    textSprite(
         "MAINTENANCE",
-        15,
-        4.5,
-        -70
+        35,3.4,-43,
+        0.5
     );
 
-    // ========================================================
-    // ELECTRICAL ROOM
-    // ========================================================
+    textSprite(
+        "DO NOT ENTER",
+        4,3.3,-92,
+        0.55,
+        "#9a7770"
+    );
+
+
+    /* =========================
+       TICKET HALL
+    ========================= */
 
     box(
-        6,
-        2.5,
-        -72,
-        10,
-        5,
-        7,
-        darkConcrete
+        "TicketHallFloor",
+        17,0.25,66,
+        49,0.5,28,
+        mats.floorDark
     );
 
     box(
-        6,
-        2,
-        -68.4,
-        5,
-        4,
-        0.3,
-        metalMat
+        "TicketDesk",
+        17,1.5,58,
+        18,2.4,1.2,
+        mats.concreteDark
     );
 
-    // Electrical panels
-    for (let x = 3.5; x <= 8.5; x += 1.5) {
+    for(let x=10;x<=24;x+=3.5) {
+
         box(
+            "Turnstile",
+            x,0.9,53,
+            1,1.8,1.8,
+            mats.metal,
+            true
+        );
+
+        box(
+            "Gate",
+            x,1.6,52.1,
+            0.12,1.2,1.2,
+            mats.glass
+        );
+    }
+
+    fluorescent(7,9,61,6,false);
+    fluorescent(27,9,61,6,true);
+
+    textSprite(
+        "LAST SERVICE 22:40",
+        17,5.4,72,
+        0.55
+    );
+
+
+    /* ticket booths */
+
+    for(let x=7;x<=27;x+=5) {
+
+        box(
+            "TicketBooth",
+            x,2.8,61,
+            3.8,5.2,0.45,
+            mats.concreteDark
+        );
+
+        box(
+            "TicketGlass",
+            x,3.4,60.7,
+            2.5,1.5,0.08,
+            mats.glass
+        );
+    }
+    /* =========================
+       SECURITY WING
+    ========================= */
+
+    box(
+        "SecurityFloor",
+        33,0.25,37,
+        16,0.5,22,
+        mats.floorDark
+    );
+
+    box(
+        "SecurityBackWall",
+        33,4.5,47,
+        16,9,0.5,
+        mats.concreteDark
+    );
+
+    box(
+        "SecuritySideWall",
+        25,4.5,37,
+        0.5,9,20,
+        mats.concreteDark
+    );
+
+    box(
+        "SecuritySideWall",
+        41,4.5,37,
+        0.5,9,20,
+        mats.concreteDark
+    );
+
+    box(
+        "SecurityDesk",
+        33,1.2,34,
+        9,1.6,2,
+        mats.metal,
+        true
+    );
+
+    textSprite(
+        "SECURITY",
+        33,7,46.5,
+        0.7
+    );
+
+
+    /* =========================
+       12 CCTV CAMERAS
+    ========================= */
+
+    for(let i=0;i<12;i++) {
+
+        const x=27+(i%4)*4;
+        const z=46.7;
+        const y=2.8+Math.floor(i/4)*1.45;
+
+        const screen=box(
+            "CCTV_"+(i+1),
+            x,y,z,
+            2.8,1.05,0.12,
+            mats.black
+        );
+
+        screen.userData.isCCTV=true;
+        screen.userData.cameraNumber=i+1;
+
+        const glow=mat(
+            i%3===0
+                ? 0x293b35
+                : 0x252a30,
+            0.4
+        );
+
+        box(
+            "CCTVScreen_"+(i+1),
+            x,y,z-0.08,
+            2.35,0.72,0.03,
+            glow
+        );
+    }
+
+    fluorescent(
+        33,9,39,
+        6,
+        false
+    );
+
+
+    /* =========================
+       MAINTENANCE WING
+    ========================= */
+
+    box(
+        "MaintenanceFloor",
+        35,0.2,-50,
+        14,0.4,46,
+        mats.floorDark
+    );
+
+    box(
+        "MaintenanceBack",
+        35,4.5,-73,
+        14,9,0.5,
+        mats.concreteDark
+    );
+
+    box(
+        "MaintenanceSide",
+        28,4.5,-50,
+        0.5,9,46,
+        mats.concreteDark
+    );
+
+    box(
+        "MaintenanceSide",
+        42,4.5,-50,
+        0.5,9,46,
+        mats.concreteDark
+    );
+
+
+    /* pipes */
+
+    for(let z=-66;z<=-38;z+=9) {
+
+        box(
+            "Pipe",
+            29,6,z,
+            0.35,0.35,8,
+            mats.rust
+        );
+
+        box(
+            "Pipe",
+            41,6,z,
+            0.35,0.35,8,
+            mats.metal
+        );
+    }
+
+
+    /* electrical panel */
+
+    const panel=box(
+        "ElectricalPanel",
+        35,2,-61,
+        3.5,4,0.35,
+        mats.metal,
+        true
+    );
+
+    panel.name="ElectricalPanel";
+
+    textSprite(
+        "AUTHORIZED STAFF ONLY",
+        35,5.1,-60.7,
+        0.42
+    );
+
+
+    fluorescent(
+        35,9,-43,
+        6,
+        true
+    );
+
+    fluorescent(
+        35,9,-58,
+        6,
+        false
+    );
+
+    fluorescent(
+        35,9,-70,
+        6,
+        true
+    );
+
+
+    /* generators */
+
+    for(let x=31;x<=39;x+=4) {
+
+        box(
+            "Generator",
+            x,1.2,-53,
+            2.5,2.4,2.5,
+            mats.rust,
+            true
+        );
+
+        cyl(
+            "Vent",
+            x,2.65,-53,
+            0.45,
+            0.3,
+            mats.metal
+        );
+    }
+
+
+    /* =========================
+       LOWER SERVICE LEVEL
+    ========================= */
+
+    box(
+        "LowerLevelFloor",
+        17,-2.6,-83,
+        30,0.5,36,
+        mats.floorDark
+    );
+
+    for(let i=0;i<9;i++) {
+
+        box(
+            "LowerStep",
+            24-i*0.45,
+            -0.15-i*0.28,
+            -69-i*0.75,
+            5,0.3,1,
+            mats.concrete
+        );
+    }
+
+    box(
+        "LowerCeiling",
+        17,1.5,-83,
+        30,0.3,36,
+        mats.concreteDark
+    );
+
+    textSprite(
+        "SERVICE LEVEL B",
+        17,0.7,-76,
+        0.55
+    );
+
+
+    /* lower corridor */
+
+    box(
+        "LowerLeft",
+        2,0,-83,
+        0.5,4,36,
+        mats.concreteDark
+    );
+
+    box(
+        "LowerRight",
+        32,0,-83,
+        0.5,4,36,
+        mats.concreteDark
+    );
+
+    fluorescent(
+        17,1.25,-78,
+        5,
+        true
+    );
+
+    fluorescent(
+        17,1.25,-90,
+        5,
+        false
+    );
+
+    fluorescent(
+        17,1.25,-102,
+        5,
+        true
+    );
+
+
+    /* =========================
+       DEEP TUNNEL
+    ========================= */
+
+    box(
+        "TunnelFloor",
+        17,-0.1,-116,
+        30,0.3,28,
+        mats.black
+    );
+
+    box(
+        "TunnelLeft",
+        2,4.5,-116,
+        0.5,9,28,
+        mats.concreteDark
+    );
+
+    box(
+        "TunnelRight",
+        32,4.5,-116,
+        0.5,9,28,
+        mats.concreteDark
+    );
+
+    box(
+        "TunnelRoof",
+        17,9,-116,
+        30,0.5,28,
+        mats.concreteDark
+    );
+
+
+    /* tunnel arches */
+
+    for(let z=-106;z>=-126;z-=6) {
+
+        cyl(
+            "TunnelArch",
+            17,4.5,z,
+            14.8,
+            0.35,
+            mats.concreteDark,
+            0,
+            Math.PI/2
+        );
+
+        fluorescent(
+            17,8.3,z,
+            4,
+            z%12===0
+        );
+    }
+
+
+    /* distant tunnel end */
+
+    box(
+        "DistantTunnelEnd",
+        17,4.5,-130,
+        29,9,0.5,
+        mats.black
+    );
+
+    textSprite(
+        "LINE CLOSED",
+        17,5,-127.5,
+        0.6,
+        "#6b5750"
+    );
+
+
+    /* =========================
+       ABANDONED DETAILS
+    ========================= */
+
+    for(let i=0;i<18;i++) {
+
+        const x=9+(i*7)%27;
+        const z=-60+(i*13)%105;
+
+        box(
+            "Debris",
             x,
-            2.2,
-            -68.1,
-            1,
-            3,
-            0.2,
-            blackMat
+            0.35,
+            z,
+            0.8+(i%3)*0.4,
+            0.7,
+            0.6+(i%2)*0.4,
+            i%2
+                ? mats.rust
+                : mats.concreteDark
         );
     }
 
-    textSign(
-        "ELECTRICAL",
-        6,
-        5.2,
-        -68
-    );
 
-    // ========================================================
-    // STORAGE ROOM
-    // ========================================================
+    /* trash bins */
 
-    box(
-        34,
-        2.5,
-        -72,
-        10,
-        5,
-        7,
-        darkConcrete
-    );
+    for(let z=-25;z<=35;z+=30) {
 
-    // Storage shelves
-    for (let z = -74; z >= -76; z -= 2) {
+        cyl(
+            "Bin",
+            24,0.8,z,
+            0.45,
+            1.5,
+            mats.metal
+        );
+    }
+
+
+    /* old posters */
+
+    for(let z=-35;z<=45;z+=20) {
+
         box(
-            34,
-            2.5,
-            z,
-            7,
-            4.5,
-            0.25,
-            metalMat
+            "OldPoster",
+            8,2.8,z,
+            0.08,2.8,1.8,
+            mats.red
+        );
+
+        box(
+            "OldPoster",
+            26,2.8,z+6,
+            0.08,2.8,1.8,
+            mats.green
         );
     }
+    /* =========================
+       ATMOSPHERIC LIGHTING
+    ========================= */
 
-    textSign(
-        "STORAGE",
-        34,
-        5.2,
-        -68
-    );
+    const guideLights = [
+        [17,8.8,-82],
+        [17,8.8,-70],
+        [17,8.8,-55],
+        [17,8.8,-40],
+        [17,8.8,-25],
+        [17,8.8,-10],
+        [17,8.8,8],
+        [17,8.8,25],
+        [17,8.8,42],
+        [17,8.8,60]
+    ];
 
-    // ========================================================
-    // TUNNEL BEYOND
-    // ========================================================
-
-    box(
-        15.5,
-        4,
-        -100,
-        38,
-        9,
-        1,
-        blackMat
-    );
-
-    box(
-        -3,
-        4,
-        -100,
-        1,
-        9,
-        45,
-        blackMat
-    );
-
-    box(
-        34,
-        4,
-        -100,
-        1,
-        9,
-        45,
-        blackMat
-    );
-
-    // Tunnel lights
-    for (let z = -90; z >= -130; z -= 10) {
-        ceilingLight(15, 7.5, z);
-    }
-
-    // ========================================================
-    // WARNING SIGNS
-    // ========================================================
-
-    for (let z = 20; z >= -60; z -= 20) {
-        textSign(
-            "⚠ DANGER",
-            8.2,
-            2.5,
-            z,
-            Math.PI / 2
+    guideLights.forEach((p,i) => {
+        fluorescent(
+            p[0],
+            p[1],
+            p[2],
+            5,
+            i%4===0
         );
-    }
-
-    // ========================================================
-    // INVISIBLE BOUNDARIES
-    // ========================================================
-
-    // These are intentionally invisible walls.
-    // They prevent the player from walking outside the map.
-
-    const invisible = new THREE.MeshBasicMaterial({
-        transparent: true,
-        opacity: 0
     });
 
+
+    /* =========================
+       RED EMERGENCY LIGHTS
+    ========================= */
+
+    for(const z of [-72,-45,-18,10,34,58]) {
+
+        box(
+            "EmergencyLight",
+            3.2,3.2,z,
+            0.18,0.7,1.2,
+            mats.red
+        );
+
+        light(
+            3.5,3.1,z,
+            0.45,
+            0xff3333,
+            8
+        );
+    }
+
+
+    /* =========================
+       DISTANT VISUAL EXTENSIONS
+    ========================= */
+
     box(
-        -14,
-        4,
-        -20,
-        1,
-        10,
-        140,
-        invisible
+        "DistantWestConcourse",
+        -4.5,3,-3,
+        7,6,190,
+        mats.concreteDark
     );
 
     box(
-        48,
-        4,
-        -20,
-        1,
-        10,
-        140,
-        invisible
+        "DistantEastConcourse",
+        38.5,3,-3,
+        7,6,190,
+        mats.concreteDark
     );
 
-    box(
-        17,
-        4,
-        88,
-        65,
-        10,
-        1,
-        invisible
-    );
 
-    box(
-        17,
-        4,
-        -140,
-        65,
-        10,
-        1,
-        invisible
-    );
+    /* =========================
+       HORROR SET PIECES
+    ========================= */
 
-    // ========================================================
-    // RETURN OBJECT
-    // ========================================================
+    for(const z of [-74,-105]) {
+
+        const silhouette = box(
+            "DistantSilhouette",
+            20,3.2,z,
+            0.5,5.5,0.35,
+            mats.black
+        );
+
+        silhouette.userData.horrorSetPiece=true;
+    }
+
+
+    /* =========================
+       LOCKED DISTANT GATES
+    ========================= */
+
+    for(const z of [-91,-126]) {
+
+        for(let x=7;x<=27;x+=4) {
+
+            box(
+                "LockedGate",
+                x,2.5,z,
+                0.22,5,0.18,
+                mats.rust
+            );
+        }
+
+        box(
+            "GateTop",
+            17,5,z,
+            21,0.35,0.25,
+            mats.rust
+        );
+
+        textSprite(
+            "RESTRICTED",
+            17,5.8,z+0.3,
+            0.5,
+            "#80635a"
+        );
+    }
+
+
+    /* =========================
+       FINAL MAP DATA
+    ========================= */
 
     return {
-        station,
-        materials: {
-            concrete,
-            darkConcrete,
-            floorMat,
-            tileMat,
-            metalMat,
-            yellowMat,
-            redMat,
-            glassMat
+
+        root,
+
+        spawn: new THREE.Vector3(
+            17,
+            2,
+            20
+        ),
+
+        bounds: {
+            minX: -7.5,
+            maxX: 41.5,
+            minZ: -128,
+            maxZ: 82
+        },
+
+        locations: {
+
+            platform: new THREE.Vector3(
+                17,
+                2,
+                -10
+            ),
+
+            ticketHall: new THREE.Vector3(
+                17,
+                2,
+                65
+            ),
+
+            security: new THREE.Vector3(
+                33,
+                2,
+                36
+            ),
+
+            maintenance: new THREE.Vector3(
+                35,
+                2,
+                -50
+            ),
+
+            lowerLevel: new THREE.Vector3(
+                17,
+                2,
+                -83
+            ),
+
+            deepTunnel: new THREE.Vector3(
+                17,
+                2,
+                -116
+            )
         }
     };
 }
