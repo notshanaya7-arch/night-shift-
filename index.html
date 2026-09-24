@@ -43,4 +43,469 @@ body {
    START SCREEN
 ========================= */
 
-#
+#startScreen {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 999;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    text-align: center;
+
+    background:
+        radial-gradient(
+            circle,
+            #20242b 0%,
+            #08090b 45%,
+            #000 100%
+        );
+}
+
+#startScreen h1 {
+
+    font-size: 70px;
+
+    letter-spacing: 12px;
+
+    margin-bottom: 5px;
+
+    text-shadow:
+        0 0 15px #777,
+        0 0 40px #222;
+
+}
+
+#startScreen h2 {
+
+    font-size: 32px;
+
+    letter-spacing: 10px;
+
+    color: #999;
+
+}
+
+.warning {
+
+    margin-top: 30px;
+
+    color: #aaa;
+
+    letter-spacing: 5px;
+
+    font-size: 12px;
+
+}
+
+.employee {
+
+    margin-top: 25px;
+
+    padding: 15px 25px;
+
+    border-top: 1px solid #444;
+
+    border-bottom: 1px solid #444;
+
+    color: #999;
+
+    font-size: 12px;
+
+    line-height: 1.8;
+
+}
+
+#startButton {
+
+    margin-top: 35px;
+
+    padding: 15px 40px;
+
+    background: transparent;
+
+    color: white;
+
+    border: 1px solid #aaa;
+
+    font-size: 14px;
+
+    letter-spacing: 4px;
+
+    cursor: pointer;
+
+}
+
+#startButton:hover {
+
+    background: rgba(255,255,255,0.12);
+
+    border-color: white;
+
+}
+
+.controls {
+
+    margin-top: 25px;
+
+    color: #666;
+
+    font-size: 11px;
+
+    line-height: 1.8;
+
+}
+
+
+/* =========================
+   HUD
+========================= */
+
+#hud {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 10;
+
+    pointer-events: none;
+
+}
+
+#mission {
+
+    position: absolute;
+
+    top: 25px;
+
+    left: 25px;
+
+    background: rgba(0,0,0,0.55);
+
+    padding: 12px 16px;
+
+    border-left: 3px solid #aaa;
+
+}
+
+#mission .label {
+
+    font-size: 10px;
+
+    color: #999;
+
+    letter-spacing: 2px;
+
+}
+
+#time {
+
+    margin-top: 5px;
+
+    font-size: 22px;
+
+}
+
+#battery {
+
+    position: absolute;
+
+    top: 25px;
+
+    right: 25px;
+
+    background: rgba(0,0,0,0.55);
+
+    padding: 12px 16px;
+
+    font-size: 11px;
+
+}
+
+#crosshair {
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    font-size: 20px;
+
+}
+
+#interaction {
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 55%;
+
+    transform: translateX(-50%);
+
+    font-size: 13px;
+
+    text-align: center;
+
+}
+
+#objective {
+
+    position: absolute;
+
+    left: 25px;
+
+    bottom: 25px;
+
+    width: 300px;
+
+    padding: 14px;
+
+    background: rgba(0,0,0,0.6);
+
+    border-left: 3px solid #888;
+
+}
+
+#objective span {
+
+    font-size: 10px;
+
+    color: #888;
+
+    letter-spacing: 2px;
+
+}
+
+#objective p {
+
+    margin-top: 6px;
+
+    font-size: 14px;
+
+}
+
+
+/* =========================
+   PAUSE
+========================= */
+
+#pauseScreen {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 500;
+
+    display: none;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    background: rgba(0,0,0,0.9);
+
+}
+
+#pauseScreen button {
+
+    margin-top: 15px;
+
+    padding: 12px 30px;
+
+    background: transparent;
+
+    color: white;
+
+    border: 1px solid #777;
+
+}
+
+
+/* =========================
+   EVENTS
+========================= */
+
+#eventMessage {
+
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 100;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    pointer-events: none;
+
+    opacity: 0;
+
+}
+
+#eventText {
+
+    text-align: center;
+
+    white-space: pre-line;
+
+    font-size: 18px;
+
+    letter-spacing: 3px;
+
+    line-height: 1.7;
+
+    text-shadow: 0 0 15px #000;
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <canvas id="gameCanvas"></canvas>
+
+
+    <!-- START SCREEN -->
+
+    <div id="startScreen">
+
+        <h1>NIGHT SHIFT</h1>
+
+        <h2>3:17 AM</h2>
+
+        <div class="warning">
+            NIGHT MAINTENANCE SHIFT
+        </div>
+
+        <div class="employee">
+
+            EMPLOYEE: YASH<br>
+            SHIFT: 11:00 PM — 6:00 AM<br>
+            LOCATION: PLATFORM 2<br>
+            STATUS: TEMPORARY WORKER
+
+        </div>
+
+        <button id="startButton">
+            START SHIFT
+        </button>
+
+        <div class="controls">
+
+            WASD — MOVE<br>
+            SHIFT — SPRINT<br>
+            F — FLASHLIGHT<br>
+            E — INTERACT<br>
+            ESC — PAUSE
+
+        </div>
+
+    </div>
+
+
+    <!-- HUD -->
+
+    <div id="hud">
+
+        <div id="mission">
+
+            <div class="label">
+                NIGHT SHIFT
+            </div>
+
+            <div id="time">
+                11:00 PM
+            </div>
+
+        </div>
+
+
+        <div id="battery">
+
+            FLASHLIGHT
+            <span id="batteryValue">
+                100%
+            </span>
+
+        </div>
+
+
+        <div id="crosshair">
+            +
+        </div>
+
+
+        <div id="interaction"></div>
+
+
+        <div id="objective">
+
+            <span>
+                OBJECTIVE
+            </span>
+
+            <p id="objectiveText">
+                Find the maintenance key.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- PAUSE -->
+
+    <div id="pauseScreen">
+
+        <h2>
+            SHIFT PAUSED
+        </h2>
+
+        <button id="resumeButton">
+            RESUME
+        </button>
+
+        <button id="restartButton">
+            RESTART SHIFT
+        </button>
+
+    </div>
+
+
+    <!-- EVENT -->
+
+    <div id="eventMessage">
+
+        <div id="eventText"></div>
+
+    </div>
+
+</div>
+
+
+<script type="module" src="game.js"></script>
+
+</body>
+</html>
