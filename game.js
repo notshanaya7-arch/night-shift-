@@ -2,6 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.m
 import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/PointerLockControls.js";
 
 const scene = new THREE.Scene();
+
 scene.background = new THREE.Color(0x050608);
 scene.fog = new THREE.Fog(0x050608, 8, 55);
 
@@ -28,22 +29,23 @@ const controls = new PointerLockControls(camera, document.body);
 const clock = new THREE.Clock();
 
 
-// =========================
-// LIGHTING
-// =========================
+// =====================================================
+// PLAYER
+// =====================================================
 
-const ambient = new THREE.HemisphereLight(
-    0x555555,
-    0x111111,
-    0.35
-);
+const player = {
+    height: 1.7,
+    radius: 0.35,
+    speed: 3.5,
+    sprintSpeed: 7,
+    hasKey: false,
+    repairedPower: false
+};
 
-scene.add(ambient);
 
-
-// =========================
+// =====================================================
 // MATERIALS
-// =========================
+// =====================================================
 
 const floorMat = new THREE.MeshStandardMaterial({
     color: 0x242424,
@@ -73,9 +75,12 @@ const doorMat = new THREE.MeshStandardMaterial({
 });
 
 
-// =========================
-// HELPER
-// =========================
+// =====================================================
+// OBJECT CREATION
+// =====================================================
+
+const colliders = [];
+const interactables = [];
 
 function box(
     x,
@@ -85,25 +90,52 @@ function box(
     sy,
     sz,
     material,
-    name = ""
+    name = "",
+    collision = false
 ) {
-    const geometry = new THREE.BoxGeometry(sx, sy, sz);
-    const mesh = new THREE.Mesh(geometry, material);
+
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(sx, sy, sz),
+        material
+    );
 
     mesh.position.set(x, y, z);
+
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+
     mesh.name = name;
 
     scene.add(mesh);
+
+    if (collision) {
+        colliders.push({
+            mesh,
+            width: sx,
+            depth: sz
+        });
+    }
 
     return mesh;
 }
 
 
-// =========================
-// FLOOR
-// =========================
+// =====================================================
+// LIGHTING
+// =====================================================
+
+scene.add(
+    new THREE.HemisphereLight(
+        0x555555,
+        0x111111,
+        0.35
+    )
+);
+
+
+// =====================================================
+// MAIN PLATFORM
+// =====================================================
 
 box(
     0,
@@ -117,20 +149,62 @@ box(
 );
 
 
-// =========================
-// WALLS
-// =========================
+// =====================================================
+// MAIN WALLS
+// =====================================================
 
-box(0, 4, -35, 24, 8, 0.5, wallMat, "Back Wall");
-box(0, 4, 35, 24, 8, 0.5, wallMat, "Front Wall");
+box(
+    0,
+    4,
+    -35,
+    24,
+    8,
+    0.5,
+    wallMat,
+    "Back Wall",
+    true
+);
 
-box(-12, 4, 0, 0.5, 8, 70, wallMat, "Left Wall");
-box(12, 4, 0, 0.5, 8, 70, wallMat, "Right Wall");
+box(
+    0,
+    4,
+    35,
+    24,
+    8,
+    0.5,
+    wallMat,
+    "Front Wall",
+    true
+);
+
+box(
+    -12,
+    4,
+    0,
+    0.5,
+    8,
+    70,
+    wallMat,
+    "Left Wall",
+    true
+);
+
+box(
+    12,
+    4,
+    0,
+    0.5,
+    8,
+    70,
+    wallMat,
+    "Right Wall",
+    true
+);
 
 
-// =========================
+// =====================================================
 // CEILING
-// =========================
+// =====================================================
 
 box(
     0,
@@ -144,9 +218,9 @@ box(
 );
 
 
-// =========================
-// RAILS
-// =========================
+// =====================================================
+// TRACKS
+// =====================================================
 
 for (let z = -30; z <= 30; z += 4) {
 
@@ -173,11 +247,6 @@ for (let z = -30; z <= 30; z += 4) {
     );
 }
 
-
-// =========================
-// SLEEPERS
-// =========================
-
 for (let z = -30; z <= 30; z += 2) {
 
     box(
@@ -193,9 +262,9 @@ for (let z = -30; z <= 30; z += 2) {
 }
 
 
-// =========================
+// =====================================================
 // PILLARS
-// =========================
+// =====================================================
 
 for (let z = -28; z <= 28; z += 8) {
 
@@ -207,7 +276,8 @@ for (let z = -28; z <= 28; z += 8) {
         8,
         0.7,
         wallMat,
-        "Pillar"
+        "Pillar",
+        true
     );
 
     box(
@@ -218,14 +288,15 @@ for (let z = -28; z <= 28; z += 8) {
         8,
         0.7,
         wallMat,
-        "Pillar"
+        "Pillar",
+        true
     );
 }
 
 
-// =========================
-// CEILING LIGHTS
-// =========================
+// =====================================================
+// LIGHTS
+// =====================================================
 
 const ceilingLights = [];
 
@@ -258,9 +329,9 @@ for (let z = -28; z <= 28; z += 7) {
 }
 
 
-// =========================
+// =====================================================
 // BENCHES
-// =========================
+// =====================================================
 
 for (let z = -20; z <= 20; z += 10) {
 
@@ -272,7 +343,8 @@ for (let z = -20; z <= 20; z += 10) {
         0.3,
         0.7,
         metalMat,
-        "Bench Seat"
+        "Bench",
+        true
     );
 
     box(
@@ -283,54 +355,119 @@ for (let z = -20; z <= 20; z += 10) {
         2,
         0.2,
         metalMat,
-        "Bench Back"
+        "Bench Back",
+        true
     );
 }
 
 
-// =========================
-// TICKET MACHINE
-// =========================
+// =====================================================
+// MAINTENANCE ROOM
+// =====================================================
 
-const ticketMachine = box(
-    -8,
-    1.5,
-    5,
-    1.2,
+const roomX = 7;
+const roomZ = -10;
+
+
+// Back wall
+box(
+    roomX,
     3,
-    0.8,
-    metalMat,
-    "Ticket Machine"
+    roomZ - 5,
+    8,
+    6,
+    0.4,
+    wallMat,
+    "Maintenance Back Wall",
+    true
 );
 
 
-// =========================
-// INTERACTIVE DOOR
-// =========================
+// Left wall
+box(
+    roomX - 4,
+    3,
+    roomZ,
+    0.4,
+    6,
+    10,
+    wallMat,
+    "Maintenance Left Wall",
+    true
+);
 
-const door = box(
+
+// Right wall
+box(
+    roomX + 4,
+    3,
+    roomZ,
+    0.4,
+    6,
+    10,
+    wallMat,
+    "Maintenance Right Wall",
+    true
+);
+
+
+// =====================================================
+// MAINTENANCE DOOR
+// =====================================================
+
+const maintenanceDoor = box(
     7,
     2.5,
     -5,
-    0.3,
+    0.35,
     5,
     3.5,
     doorMat,
-    "Maintenance Door"
+    "Maintenance Door",
+    true
 );
 
-door.userData.interactable = true;
-door.userData.type = "door";
-door.userData.open = false;
+maintenanceDoor.userData.type = "door";
+maintenanceDoor.userData.locked = true;
+maintenanceDoor.userData.open = false;
+
+interactables.push(maintenanceDoor);
 
 
 // Door frame
-box(6.7, 2.5, -5, 0.2, 5.5, 0.2, metalMat);
-box(7.3, 2.5, -5, 0.2, 5.5, 0.2, metalMat);
+
+box(
+    5.2,
+    2.5,
+    -5,
+    0.2,
+    5.5,
+    0.2,
+    metalMat,
+    "Door Frame"
+);
+
+box(
+    8.8,
+    2.5,
+    -5,
+    0.2,
+    5.5,
+    0.2,
+    metalMat,
+    "Door Frame"
+);
 
 
-// =========================
-// FLASHLIGHT
-// =========================
+// =====================================================
+// ELECTRICAL PANEL
+// =====================================================
 
-const flashlight = new THREE.SpotLight
+const panel = box(
+    10.6,
+    2.5,
+    -12,
+    0.25,
+    2.5,
+    2,
+   
