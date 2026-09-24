@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>NIGHT SHIFT: 3:17 AM</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- =========================
+         GAME
+    ========================== -->
+
+    <div id="game">
+
+        <!-- Three.js will render the 3D world here -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- =========================
+             PLAYER HUD
+        ========================== -->
+
+        <div id="hud">
+
+            <!-- Top-left -->
+            <div id="mission">
+                <div class="label">NIGHT SHIFT</div>
+                <div id="time">11:00 PM</div>
+            </div>
+
+            <!-- Top-right -->
+            <div id="battery">
+                FLASHLIGHT
+                <span id="batteryValue">100%</span>
+            </div>
+
+            <!-- Center -->
+            <div id="crosshair">+</div>
+
+            <!-- Bottom-center -->
+            <div id="interaction"></div>
+
+            <!-- Bottom-left -->
+            <div id="objective">
+                <span>OBJECTIVE</span>
+                <p id="objectiveText">
+                    Check the electrical panel.
+                </p>
+            </div>
+
+        </div>
+
+        <!-- =========================
+             START SCREEN
+        ========================== -->
+
+        <div id="startScreen">
+
+            <div class="title">
+                <h1>NIGHT SHIFT</h1>
+                <h2>3:17 AM</h2>
+            </div>
+
+            <p class="warning">
+                NIGHT MAINTENANCE SHIFT
+            </p>
+
+            <button id="startButton">
+                START SHIFT
+            </button>
+
+            <p class="controls">
+                WASD — Move<br>
+                SHIFT — Sprint<br>
+                F — Flashlight<br>
+                E — Interact<br>
+                ESC — Pause
+            </p>
+
+        </div>
+
+        <!-- =========================
+             PAUSE MENU
+        ========================== -->
+
+        <div id="pauseScreen">
+
+            <h2>SHIFT PAUSED</h2>
+
+            <button id="resumeButton">
+                RESUME
+            </button>
+
+           
