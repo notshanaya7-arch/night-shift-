@@ -1,1527 +1,1752 @@
-import * as THREE from "three";
+/* ============================================================
+   NIGHT SHIFT: 3:17 AM
+   FINAL ACTUAL RAILWAY STATION
+   station.js — PART 1/3
+   ============================================================ */
 
-export function createStation(scene) {
+function buildStation(THREE) {
+
     const root = new THREE.Group();
-    root.name = "NightShift_RealisticMetro";
-    scene.add(root);
+    root.name = "ACTUAL_RAILWAY_STATION";
 
-    // ================= MATERIALS =================
+    /* ---------- MATERIALS ---------- */
 
-    function mat(color, roughness=0.85, metalness=0.05) {
-        return new THREE.MeshStandardMaterial({
+    const M = (color, roughness = 0.8, metalness = 0) =>
+        new THREE.MeshStandardMaterial({
             color,
             roughness,
             metalness
         });
-    }
 
-    const mats = {
-        concrete: mat(0x4b4d4e,0.98),
-        concrete2: mat(0x36383a,1),
-        darkConcrete: mat(0x242628,1),
-        floor: mat(0x303234,0.95),
-        tile: mat(0x55585a,0.88),
-        tileDark: mat(0x202224,0.98),
-        metal: mat(0x4c5154,0.72,0.55),
-        darkMetal: mat(0x17191a,0.92,0.35),
-        rust: mat(0x49352d,0.96,0.18),
-        yellow: mat(0xb19a43,0.72,0.1),
-        black: mat(0x080909,1),
-        rubber: mat(0x111213,1),
+    const concrete      = M(0x777777);
+    const concreteDark  = M(0x454545);
+    const concreteLight = M(0x999999);
+    const floor         = M(0x55585a);
+    const tile          = M(0x747474);
+    const tileDark      = M(0x292b2d);
+    const metal         = M(0x606467, 0.45, 0.75);
+    const darkMetal     = M(0x25282a, 0.5, 0.8);
+    const railMat       = M(0x777d80, 0.25, 0.9);
+    const wood          = M(0x513a2c);
+    const rust          = M(0x673d29);
+    const yellow        = M(0xc3a400);
+    const white         = M(0xd5d5d5);
+    const black         = M(0x090909);
+    const red           = M(0x8c1717);
+    const green         = M(0x187447);
 
-        glass: new THREE.MeshStandardMaterial({
-            color:0x263036,
-            roughness:0.2,
-            metalness:0.25,
-            transparent:true,
-            opacity:0.52
-        }),
+    const fluorescent = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 2.4,
+        roughness: 0.25
+    });
 
-        dirtyGlass: new THREE.MeshStandardMaterial({
-            color:0x384044,
-            roughness:0.5,
-            metalness:0.15,
-            transparent:true,
-            opacity:0.38
-        }),
+    const redGlow = new THREE.MeshStandardMaterial({
+        color: 0xff2222,
+        emissive: 0xff0000,
+        emissiveIntensity: 2.2
+    });
 
-        red: mat(0x651c1c,0.75),
-        green: mat(0x263d34,0.85),
-        white: mat(0xd0d0c7,0.7)
-    };
+    /* ---------- HELPERS ---------- */
 
-    // ================= HELPERS =================
-
-    function box(name,x,y,z,sx,sy,sz,material,cast=false) {
+    function box(name, x, y, z, sx, sy, sz, material, parent = root) {
         const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(sx,sy,sz),
+            new THREE.BoxGeometry(sx, sy, sz),
             material
         );
 
         mesh.name = name;
-        mesh.position.set(x,y,z);
-        mesh.castShadow = cast;
-        mesh.receiveShadow = true;
-
-        root.add(mesh);
-        return mesh;
-    }
-
-    function cyl(name,x,y,z,radius,height,material,rotX=0,rotZ=0) {
-        const mesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(radius,radius,height,12),
-            material
-        );
-
-        mesh.name = name;
-        mesh.position.set(x,y,z);
-        mesh.rotation.x = rotX;
-        mesh.rotation.z = rotZ;
+        mesh.position.set(x, y, z);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        root.add(mesh);
+        parent.add(mesh);
         return mesh;
     }
 
-    function beam(name,x,y,z,sx,sy,sz,material=mats.metal) {
-        return box(name,x,y,z,sx,sy,sz,material,true);
-    }
-
-    function pointLight(name,x,y,z,intensity,color,distance) {
-        const l = new THREE.PointLight(
-            color,
-            intensity,
-            distance,
-            2
+    function cylinder(name, x, y, z, radius, height, material, parent = root) {
+        const mesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(radius, radius, height, 12),
+            material
         );
 
-        l.name = name;
-        l.position.set(x,y,z);
-        l.castShadow = false;
+        mesh.name = name;
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
 
+        parent.add(mesh);
+        return mesh;
+    }
+
+    function pointLight(name, x, y, z, color, intensity, distance) {
+        const l = new THREE.PointLight(color, intensity, distance);
+        l.name = name;
+        l.position.set(x, y, z);
         root.add(l);
         return l;
     }
 
-    function fluorescent(x,y,z,length=4.5,broken=false) {
+    function textSign(name, text, x, y, z, width = 4, height = 0.9) {
 
-        box(
-            "FluorescentTube",
-            x,y,z,
-            length,0.09,0.18,
-            mats.white
+        const group = new THREE.Group();
+        group.name = name;
+
+        const board = box(
+            name + "_BOARD",
+            x, y, z,
+            width, height, 0.16,
+            black,
+            group
         );
 
-        const l = pointLight(
-            "FluorescentLight",
-            x,y-0.15,z,
-            broken ? 0.18 : 1.55,
-            0xdde7eb,
-            13
-        );
+        if (typeof document !== "undefined") {
 
-        if(broken) {
-            l.userData.flicker = true;
-            l.userData.base = 0.18;
+            const canvas = document.createElement("canvas");
+            canvas.width = 1024;
+            canvas.height = 256;
+
+            const ctx = canvas.getContext("2d");
+
+            ctx.fillStyle = "#111111";
+            ctx.fillRect(0, 0, 1024, 256);
+
+            ctx.fillStyle = "#eeeeee";
+            ctx.font = "bold 72px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, 512, 128);
+
+            const texture = new THREE.CanvasTexture(canvas);
+
+            const label = new THREE.Mesh(
+                new THREE.PlaneGeometry(width * 0.92, height * 0.78),
+                new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true
+                })
+            );
+
+            label.position.set(x, y, z - 0.1);
+            group.add(label);
         }
 
-        return l;
+        root.add(group);
+        return group;
     }
 
-    function textSprite(text,x,y,z,scale=0.65,color="#c7c7bd") {
+    function fluorescentLight(x, y, z, length = 4) {
 
-        const canvas = document.createElement("canvas");
-
-        canvas.width = 512;
-        canvas.height = 128;
-
-        const ctx = canvas.getContext("2d");
-
-        ctx.clearRect(0,0,512,128);
-
-        ctx.font = "bold 38px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = color;
-
-        ctx.fillText(text,256,64);
-
-        const texture = new THREE.CanvasTexture(canvas);
-
-        texture.colorSpace = THREE.SRGBColorSpace;
-
-        const sprite = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-                map:texture,
-                transparent:true,
-                depthWrite:false
-            })
+        box(
+            "FLUORESCENT_TUBE",
+            x, y, z,
+            length, 0.12, 0.16,
+            fluorescent
         );
 
-        sprite.position.set(x,y,z);
-        sprite.scale.set(scale*4,scale,1);
-
-        root.add(sprite);
-
-        return sprite;
+        pointLight(
+            "STATION_LIGHT",
+            x, y - 0.25, z,
+            0xffffff,
+            1.15,
+            13
+        );
     }
 
-    function railingRun(x,y,z,length,alongX=true,height=1.15) {
+    function railing(x, y, z, length, horizontal = true) {
 
-        const railMat = mats.darkMetal;
+        if (horizontal) {
+            box("RAILING_TOP", x, y + 0.9, z, length, 0.09, 0.09, metal);
+            box("RAILING_MID", x, y + 0.48, z, length, 0.07, 0.07, metal);
 
-        const count = Math.max(
-            2,
-            Math.floor(length/2.4)+1
-        );
-
-        if(alongX) {
-
-            beam(
-                "RailTop",
-                x,y+height,z,
-                length,0.11,0.11,
-                railMat
-            );
-
-            beam(
-                "RailMid",
-                x,y+height*0.5,z,
-                length,0.07,0.07,
-                railMat
-            );
-
-            for(let i=0;i<count;i++) {
-
-                const px =
-                    x-length/2+
-                    (length/(count-1))*i;
-
-                cyl(
-                    "RailPost",
-                    px,
-                    y+height/2,
-                    z,
-                    0.055,
-                    height,
-                    railMat
-                );
+            for (let i = -length / 2; i <= length / 2; i += 1.8) {
+                cylinder("RAILING_POST", x + i, y + 0.45, z, 0.045, 0.9, metal);
             }
 
         } else {
 
-            beam(
-                "RailTop",
-                x,y+height,z,
-                0.11,0.11,length,
-                railMat
-            );
+            box("RAILING_TOP", x, y + 0.9, z, 0.09, 0.09, length, metal);
+            box("RAILING_MID", x, y + 0.48, z, 0.07, 0.07, length, metal);
 
-            beam(
-                "RailMid",
-                x,y+height*0.5,z,
-                0.07,0.07,length,
-                railMat
-            );
-
-            for(let i=0;i<count;i++) {
-
-                const pz =
-                    z-length/2+
-                    (length/(count-1))*i;
-
-                cyl(
-                    "RailPost",
-                    x,
-                    y+height/2,
-                    pz,
-                    0.055,
-                    height,
-                    railMat
-                );
+            for (let i = -length / 2; i <= length / 2; i += 1.8) {
+                cylinder("RAILING_POST", x, y + 0.45, z + i, 0.045, 0.9, metal);
             }
         }
     }
 
-    function stairFlight(x,y,z,steps,width,direction=1) {
+    /* ========================================================
+       MAIN STATION FLOOR
+       ======================================================== */
 
-        for(let i=0;i<steps;i++) {
+    box(
+        "MAIN_FLOOR",
+        0, -0.25, -5,
+        40, 0.5, 118,
+        floor
+    );
+
+    /* platform */
+
+    box(
+        "MAIN_PLATFORM",
+        -4, 0, -5,
+        15, 0.7, 112,
+        concreteLight
+    );
+
+    /* yellow safety line */
+
+    box(
+        "YELLOW_PLATFORM_LINE",
+        3.0, 0.39, -5,
+        0.18, 0.035, 110,
+        yellow
+    );
+
+    /* platform edge */
+
+    box(
+        "PLATFORM_EDGE",
+        3.5, 0.15, -5,
+        0.35, 0.5, 112,
+        concreteDark
+    );
+
+    /* ========================================================
+       TWO RAILWAY TRACKS
+       ======================================================== */
+
+    function track(centerX) {
+
+        /* ballast */
+
+        box(
+            "TRACK_BALLAST",
+            centerX, 0.02, -5,
+            8, 0.12, 112,
+            tileDark
+        );
+
+        /* sleepers */
+
+        for (let z = -59; z <= 49; z += 2.1) {
 
             box(
-                "ConcreteStep",
-                x,
-                y+i*0.28,
-                z+direction*i*0.62,
-                width,
-                0.32,
-                0.72,
-                mats.concrete
+                "RAILWAY_SLEEPER",
+                centerX,
+                0.18,
+                z,
+                7.2,
+                0.22,
+                0.38,
+                wood
             );
         }
 
-        const total = steps*0.62;
+        /* rails */
 
-        railingRun(
-            x-width/2-0.22,
-            y,
-            z+direction*(total/2),
-            total+1,
-            false,
-            1.1
-        );
-
-        railingRun(
-            x+width/2+0.22,
-            y,
-            z+direction*(total/2),
-            total+1,
-            false,
-            1.1
-        );
-    }
-
-    // ================= MAIN STATION =================
-
-    box(
-        "MainFloor",
-        18,-0.25,-5,
-        48,0.5,150,
-        mats.floor
-    );
-
-    box(
-        "MainCeiling",
-        18,10.5,-5,
-        48,0.35,150,
-        mats.darkConcrete
-    );
-
-    box(
-        "LeftStructuralWall",
-        -6.5,5,-5,
-        0.65,10,150,
-        mats.darkConcrete
-    );
-
-    box(
-        "RightStructuralWall",
-        42.5,5,-5,
-        0.65,10,150,
-        mats.darkConcrete
-    );
-
-    // OVERHEAD STRUCTURE
-
-    for(let z=-72;z<=62;z+=8) {
-
-        beam(
-            "CeilingCrossBeam",
-            18,9.9,z,
-            47,0.45,0.5,
-            mats.darkMetal
-        );
-    }
-
-    // COLUMNS
-
-    for(let z=-68;z<=58;z+=9) {
-
-        beam(
-            "ColumnL",
-            3.5,4.8,z,
-            0.8,9.6,0.8,
-            mats.concrete2
-        );
-
-        beam(
-            "ColumnR",
-            32.5,4.8,z,
-            0.8,9.6,0.8,
-            mats.concrete2
+        box(
+            "RAIL_LEFT",
+            centerX - 2.55,
+            0.38,
+            -5,
+            0.16,
+            0.22,
+            112,
+            railMat
         );
 
         box(
-            "ColumnCollar",
-            3.5,7.4,z,
-            1.05,0.18,1.05,
-            mats.metal
+            "RAIL_RIGHT",
+            centerX + 2.55,
+            0.38,
+            -5,
+            0.16,
+            0.22,
+            112,
+            railMat
         );
 
+        /* third rail / electrical rail */
+
         box(
-            "ColumnCollar",
-            32.5,7.4,z,
-            1.05,0.18,1.05,
-            mats.metal
+            "THIRD_RAIL",
+            centerX,
+            0.42,
+            -5,
+            0.11,
+            0.2,
+            112,
+            darkMetal
         );
     }
 
-    // ================= PLATFORM =================
+    track(11);
+
+    track(27);
+
+    /* central safety divider */
 
     box(
-        "Platform",
-        18,0.1,-6,
-        27,0.45,112,
-        mats.tile
+        "TRACK_DIVIDER",
+        19, 0.25, -5,
+        0.4, 0.5, 112,
+        concreteDark
     );
 
-    box(
-        "SafetyLine",
-        30.6,0.36,-6,
-        0.22,0.08,112,
-        mats.yellow
-    );
+    /* ========================================================
+       PILLARS
+       ======================================================== */
 
-    // ================= TRACK =================
+    for (let z = -57; z <= 47; z += 13) {
 
-    box(
-        "TrackTrench",
-        37.2,-0.55,-6,
-        7.5,0.65,112,
-        mats.black
-    );
+        cylinder(
+            "CONCRETE_SUPPORT",
+            -12,
+            5.0,
+            z,
+            0.65,
+            10,
+            concrete
+        );
 
-    box(
-        "GravelBed",
-        37.2,-0.16,-6,
-        6.8,0.25,112,
-        mats.rubber
-    );
+        cylinder(
+            "CONCRETE_SUPPORT",
+            0,
+            5.0,
+            z,
+            0.65,
+            10,
+            concrete
+        );
 
-    for(let z=-59;z<=47;z+=2.2) {
+        cylinder(
+            "CONCRETE_SUPPORT",
+            8,
+            5.0,
+            z,
+            0.65,
+            10,
+            concreteDark
+        );
 
-        box(
-            "RailSleeper",
-            37.2,0.03,z,
-            6.5,0.18,0.35,
-            mats.rust
+        cylinder(
+            "CONCRETE_SUPPORT",
+            19,
+            5.0,
+            z,
+            0.65,
+            10,
+            concrete
+        );
+
+        cylinder(
+            "CONCRETE_SUPPORT",
+            35,
+            5.0,
+            z,
+            0.65,
+            10,
+            concreteDark
         );
     }
 
-    box(
-        "Rail1",
-        35.5,0.25,-6,
-        0.13,0.16,112,
-        mats.metal
-    );
+    /* ========================================================
+       ROOF
+       ======================================================== */
 
     box(
-        "Rail2",
-        39,0.25,-6,
-        0.13,0.16,112,
-        mats.metal
+        "STATION_ROOF",
+        9,
+        10.2,
+        -5,
+        49,
+        0.45,
+        116,
+        concreteDark
     );
 
-    box(
-        "ThirdRail",
-        41,0.16,-6,
-        0.12,0.12,112,
-        mats.darkMetal
-    );
+    /* roof beams */
 
-    // ================= BENCHES =================
-
-    for(let z=-48;z<=40;z+=18) {
+    for (let z = -55; z <= 45; z += 10) {
 
         box(
-            "BenchSeat",
-            19,1.35,z,
-            5.8,0.22,0.8,
-            mats.metal,
-            true
-        );
-
-        box(
-            "BenchBack",
-            19,2.1,z+0.28,
-            5.8,1,0.16,
-            mats.metal,
-            true
-        );
-
-        for(let x=17;x<=21;x+=2) {
-
-            box(
-                "BenchLeg",
-                x,0.72,z,
-                0.16,1.2,0.16,
-                mats.darkMetal
-            );
-        }
-    }
-
-    // ================= RAILINGS =================
-
-    railingRun(
-        4.8,0.2,-32,
-        16,false
-    );
-
-    railingRun(
-        4.8,0.2,18,
-        14,false
-    );
-
-    // ================= STAIRS =================
-
-    stairFlight(
-        9,-0.1,-48,
-        12,5.5,-1
-    );
-
-    stairFlight(
-        27,-0.1,42,
-        11,5.2,1
-    );
-
-    railingRun(
-        27,3,49,
-        8,true
-    );
-
-    railingRun(
-        27,3,35,
-        8,true
-    );
-
-    // ================= LIGHTS =================
-
-    for(let z=-66;z<=60;z+=9) {
-
-        fluorescent(
-            18,9.65,z,
-            5.5,
-            z%27===0
+            "ROOF_CROSS_BEAM",
+            9,
+            9.55,
+            z,
+            48,
+            0.45,
+            0.55,
+            darkMetal
         );
     }
 
-    for(let z=-58;z<=52;z+=14) {
+    /* roof pipes */
 
-        fluorescent(
-            7,7.2,z,
-            3.2,
-            z%28===0
+    for (let x = -7; x <= 35; x += 7) {
+
+        box(
+            "OVERHEAD_PIPE",
+            x,
+            9.2,
+            -5,
+            0.22,
+            0.22,
+            112,
+            metal
         );
     }
 
-    // ================= RED EMERGENCY LIGHTS =================
+    /* ========================================================
+       LIGHTING
+       ======================================================== */
 
-    for(const z of [-60,-31,-3,24,51]) {
+    for (let z = -51; z <= 43; z += 9) {
+
+        fluorescentLight(-8, 9.65, z, 4);
+        fluorescentLight(5, 9.65, z, 4);
+        fluorescentLight(17, 9.65, z, 4);
+        fluorescentLight(30, 9.65, z, 4);
+    }
+
+    /* extra ambient illumination */
+
+    pointLight("PLATFORM_FILL", -4, 5, 0, 0xffffff, 2.2, 32);
+    pointLight("TRACK_FILL", 18, 4, -20, 0xffffff, 1.8, 28);
+    pointLight("TRACK_FILL_2", 28, 4, 25, 0xffffff, 1.8, 28);
+
+    /* red emergency lamps */
+
+    for (let z = -50; z <= 40; z += 18) {
 
         box(
-            "EmergencyLamp",
-            2.8,3.1,z,
-            0.2,0.75,1.1,
-            mats.red
+            "RED_EMERGENCY_LAMP",
+            -13.2,
+            5.8,
+            z,
+            0.25,
+            0.4,
+            0.8,
+            redGlow
         );
 
         pointLight(
-            "RedEmergencyGlow",
-            3.1,3,z,
-            0.35,
+            "RED_EMERGENCY_LIGHT",
+            -13,
+            5.6,
+            z,
             0xff2222,
-            7
+            0.5,
+            8
         );
     }
 
-    // ================= OVERHEAD PIPES =================
+    /* ========================================================
+       PLATFORM FURNITURE
+       ======================================================== */
 
-    for(let z=-62;z<=54;z+=10) {
+    for (let z = -38; z <= 35; z += 14) {
 
-        cyl(
-            "OverheadPipeA",
-            8,8.6,z,
-            0.18,26,
-            mats.rust,
-            0,Math.PI/2
+        box("BENCH_SEAT", -7, 1.05, z, 5.2, 0.22, 0.75, wood);
+
+        box("BENCH_BACK", -7, 1.8, z + 0.25, 5.2, 1.1, 0.18, wood);
+
+        box("BENCH_LEG", -8.8, 0.55, z, 0.15, 1, metal);
+        box("BENCH_LEG", -5.2, 0.55, z, 0.15, 1, metal);
+    }
+
+    /* bins */
+
+    for (let z = -28; z <= 30; z += 29) {
+
+        box("TRASH_BIN", -1.2, 0.75, z, 0.8, 1.5, 0.8, darkMetal);
+    }
+
+    /* station signs */
+
+    textSign("PLATFORM_SIGN", "PLATFORM 02", -6, 6.8, 39, 5, 1);
+    textSign("TRACK_SIGN", "TRACK 01", 10, 6.8, 35, 4, 0.9);
+    textSign("EXIT_SIGN", "EXIT", -8, 6.8, 8, 3, 0.9);
+
+    /* platform railing */
+
+    railing(-12.2, 0.3, -5, 108, false);
+
+    return root;
+}
+/* ============================================================
+   NIGHT SHIFT: 3:17 AM
+   station.js — PART 2/3
+   ============================================================ */
+
+/* ============================================================
+   ADDITIONAL STATION ROOMS
+   ============================================================ */
+
+function buildStationRooms(THREE, root) {
+
+    const M = (color, roughness = 0.8, metalness = 0) =>
+        new THREE.MeshStandardMaterial({
+            color,
+            roughness,
+            metalness
+        });
+
+    const concrete = M(0x777777);
+    const dark = M(0x303234);
+    const floor = M(0x505254);
+    const metal = M(0x5d6265, 0.4, 0.75);
+    const black = M(0x080808);
+    const glass = new THREE.MeshStandardMaterial({
+        color: 0x8caeb8,
+        transparent: true,
+        opacity: 0.3
+    });
+
+    const fluorescent = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        emissive: 0xffffff,
+        emissiveIntensity: 2.5
+    });
+
+    function box(name, x, y, z, sx, sy, sz, material, parent = root) {
+
+        const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(sx, sy, sz),
+            material
         );
 
-        cyl(
-            "OverheadPipeB",
-            10,8.9,z+0.8,
-            0.13,26,
-            mats.metal,
-            0,Math.PI/2
+        mesh.name = name;
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        parent.add(mesh);
+        return mesh;
+    }
+
+    function light(x, y, z, intensity = 1.2) {
+
+        const l = new THREE.PointLight(
+            0xffffff,
+            intensity,
+            14
         );
 
-        cyl(
-            "OverheadPipeC",
-            12,8.35,z-0.7,
-            0.1,26,
-            mats.darkMetal,
-            0,Math.PI/2
+        l.position.set(x, y, z);
+        root.add(l);
+    }
+
+    function tube(x, y, z, sx = 4) {
+
+        box(
+            "HALL_FLUORESCENT",
+            x, y, z,
+            sx, 0.12, 0.18,
+            fluorescent
+        );
+
+        light(x, y - 0.25, z, 1.1);
+    }
+
+    /* ========================================================
+       TICKET HALL
+       ======================================================== */
+
+    const hall = new THREE.Group();
+    hall.name = "TICKET_HALL";
+    root.add(hall);
+
+    box(
+        "TICKET_HALL_FLOOR",
+        -7, 0.05, 61,
+        23, 0.35, 24,
+        floor,
+        hall
+    );
+
+    /* walls */
+
+    box(
+        "HALL_BACK_WALL",
+        -7, 4, 73,
+        23, 8, 0.5,
+        concrete,
+        hall
+    );
+
+    box(
+        "HALL_LEFT_WALL",
+        -18.2, 4, 61,
+        0.5, 8, 24,
+        concrete,
+        hall
+    );
+
+    box(
+        "HALL_RIGHT_WALL",
+        4.2, 4, 61,
+        0.5, 8, 24,
+        concrete,
+        hall
+    );
+
+    /* roof */
+
+    box(
+        "HALL_ROOF",
+        -7, 8.2, 61,
+        23, 0.45, 24,
+        dark,
+        hall
+    );
+
+    /* ticket counters */
+
+    for (let i = 0; i < 4; i++) {
+
+        const x = -15 + i * 4.5;
+
+        box(
+            "TICKET_COUNTER",
+            x, 1.5, 68,
+            3.8, 2.8, 1,
+            dark,
+            hall
+        );
+
+        box(
+            "TICKET_WINDOW",
+            x, 3.1, 67.45,
+            2.6, 1.4, 0.12,
+            glass,
+            hall
         );
     }
 
-    for(const x of [5.5,7,9.2]) {
+    /* turnstiles */
+
+    for (let i = 0; i < 4; i++) {
+
+        const x = -14 + i * 3.7;
 
         box(
-            "LongPipe",
-            x,7.9,-5,
-            0.22,0.22,146,
-            mats.rust
+            "TURNSTILE_BASE",
+            x, 0.8, 55,
+            1.2, 1.6, 0.65,
+            metal,
+            hall
+        );
+
+        box(
+            "TURNSTILE_ARM",
+            x, 1.35, 54.45,
+            0.08, 0.08, 1.5,
+            metal,
+            hall
         );
     }
 
-    for(let z=-60;z<=50;z+=11) {
+    tube(-12, 7.5, 55, 4);
+    tube(-3, 7.5, 55, 4);
+    tube(-12, 7.5, 66, 4);
+    tube(-3, 7.5, 66, 4);
+
+    light(-8, 5, 61, 1.5);
+
+    /* signs */
+
+    function simpleSign(text, x, y, z, w = 4) {
+
+        const board = box(
+            "SIGN_" + text,
+            x, y, z,
+            w, 0.9, 0.15,
+            black,
+            hall
+        );
+
+        if (typeof document !== "undefined") {
+
+            const c = document.createElement("canvas");
+            c.width = 512;
+            c.height = 128;
+
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#111";
+            ctx.fillRect(0, 0, 512, 128);
+
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 55px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, 256, 64);
+
+            const tex = new THREE.CanvasTexture(c);
+
+            const label = new THREE.Mesh(
+                new THREE.PlaneGeometry(w * 0.9, 0.65),
+                new THREE.MeshBasicMaterial({
+                    map: tex,
+                    transparent: true
+                })
+            );
+
+            label.position.set(x, y, z - 0.1);
+            hall.add(label);
+        }
+
+        return board;
+    }
+
+    simpleSign("TICKETS", -12, 6.1, 72, 5);
+    simpleSign("WAITING HALL", -3, 6.1, 72, 6);
+    simpleSign("LAST SERVICE 22:40", -7, 4.5, 55, 6);
+
+    /* ========================================================
+       WAITING ROOM
+       ======================================================== */
+
+    const waiting = new THREE.Group();
+    waiting.name = "WAITING_ROOM";
+    root.add(waiting);
+
+    box(
+        "WAITING_FLOOR",
+        11, 0.1, 61,
+        12, 0.3, 22,
+        floor,
+        waiting
+    );
+
+    box(
+        "WAITING_BACK",
+        11, 4, 72,
+        12, 8, 0.5,
+        concrete,
+        waiting
+    );
+
+    box(
+        "WAITING_RIGHT",
+        17, 4, 61,
+        0.5, 8, 22,
+        concrete,
+        waiting
+    );
+
+    box(
+        "WAITING_ROOF",
+        11, 8, 61,
+        12, 0.4, 22,
+        dark,
+        waiting
+    );
+
+    for (let z = 55; z <= 67; z += 6) {
 
         box(
-            "PipeBracket",
-            8,7.7,z,
-            5,0.18,0.18,
-            mats.darkMetal
+            "WAITING_BENCH",
+            11, 1, z,
+            8, 0.25, 0.8,
+            metal,
+            waiting
         );
     }
 
-    // ================= SIGNS =================
+    tube(11, 7.4, 56, 5);
+    tube(11, 7.4, 66, 5);
 
-    textSprite(
-        "PLATFORM 02",
-        18,4.8,43,
-        0.72
-    );
+    light(11, 5, 61, 1.6);
 
-    textSprite(
-        "EXIT",
-        18,4.2,52,
-        0.58
-    );
+    /* ========================================================
+       STAIRS TO FOOTBRIDGE
+       ======================================================== */
 
-    textSprite(
-        "TRACK 01",
-        27,3.7,14,
-        0.45
-    );
+    function stairs(x, y, z, direction = 1) {
 
-    // PART 2 CONTINUES BELOW
-    // ================= TICKET CONCOURSE =================
+        const stairGroup = new THREE.Group();
+        stairGroup.name = "FOOTBRIDGE_STAIRS";
+        root.add(stairGroup);
 
-    box(
-        "TicketFloor",
-        18,0.15,62,
-        40,0.45,31,
-        mats.tileDark
-    );
+        for (let i = 0; i < 12; i++) {
 
-    box(
-        "TicketCeiling",
-        18,9.5,62,
-        40,0.3,31,
-        mats.darkConcrete
-    );
+            const step = new THREE.Mesh(
+                new THREE.BoxGeometry(4.5, 0.35, 1.1),
+                concrete
+            );
 
-    box(
-        "TicketBackWall",
-        18,4.7,77,
-        40,9,0.45,
-        mats.concrete2
-    );
+            step.position.set(
+                x,
+                y + i * 0.32,
+                z + i * 0.72 * direction
+            );
 
-    box(
-        "TicketLeftWall",
-        -1.5,4.7,62,
-        0.45,9,31,
-        mats.concrete2
-    );
+            step.castShadow = true;
+            step.receiveShadow = true;
 
-    box(
-        "TicketRightWall",
-        38,4.7,62,
-        0.45,9,31,
-        mats.concrete2
-    );
+            stairGroup.add(step);
+        }
 
-    // TICKET BOOTHS
+        /* side rails */
 
-    for(let x=5;x<=31;x+=6.5) {
+        for (const side of [-2.25, 2.25]) {
 
-        box(
-            "TicketBooth",
-            x,2.7,69,
-            5.4,5.2,0.5,
-            mats.concreteDark
-        );
+            const rail = new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    0.1,
+                    0.1,
+                    11
+                ),
+                metal
+            );
 
-        box(
-            "TicketGlass",
-            x,3.7,68.7,
-            3.8,1.7,0.08,
-            mats.dirtyGlass
-        );
+            rail.position.set(
+                x + side,
+                y + 3.5,
+                z + 4 * direction
+            );
 
-        box(
-            "TicketCounter",
-            x,2.45,68.25,
-            4.5,0.25,0.7,
-            mats.metal
-        );
+            stairGroup.add(rail);
+        }
     }
 
-    // TURNSTILES
+    stairs(-2, 0.3, 46, -1);
 
-    for(let x=7;x<=29;x+=3.7) {
+    stairs(-2, 0.3, -38, 1);
 
-        box(
-            "TurnstileBody",
-            x,0.9,57,
-            0.75,1.8,1.1,
-            mats.darkMetal
-        );
+    /* ========================================================
+       FOOTBRIDGE
+       ======================================================== */
 
-        box(
-            "TurnstileArm",
-            x,1.35,56.35,
-            0.08,0.08,1.7,
-            mats.metal
-        );
+    box(
+        "FOOTBRIDGE_FLOOR",
+        -2,
+        7,
+        -2,
+        8,
+        0.5,
+        42,
+        concrete
+    );
+
+    box(
+        "FOOTBRIDGE_LEFT",
+        -6,
+        8,
+        -2,
+        0.15,
+        2,
+        42,
+        metal
+    );
+
+    box(
+        "FOOTBRIDGE_RIGHT",
+        2,
+        8,
+        -2,
+        0.15,
+        2,
+        42,
+        metal
+    );
+
+    /* bridge lights */
+
+    for (let z = -18; z <= 14; z += 8) {
+        tube(-2, 8.4, z, 3);
     }
 
-    textSprite(
-        "TICKETS",
-        18,5.6,76.4,
-        0.72
-    );
+    /* ========================================================
+       SECURITY / CCTV ROOM
+       ======================================================== */
 
-    textSprite(
-        "LAST SERVICE 22:40",
-        18,4.5,70.2,
-        0.42,
-        "#918f86"
-    );
-
-    textSprite(
-        "TICKET HALL",
-        18,4.3,48,
-        0.46
-    );
-
-    fluorescent(
-        7,8.7,61,
-        5,false
-    );
-
-    fluorescent(
-        18,8.7,61,
-        5,true
-    );
-
-    fluorescent(
-        29,8.7,61,
-        5,false
-    );
-
-    fluorescent(
-        18,8.7,72,
-        5,true
-    );
-
-    // ================= SECURITY ROOM =================
+    const security = new THREE.Group();
+    security.name = "SECURITY_ROOM";
+    root.add(security);
 
     box(
-        "SecurityFloor",
-        -1,0.15,35,
-        15,0.45,22,
-        mats.floor
+        "SECURITY_FLOOR",
+        -12,
+        0.1,
+        29,
+        8,
+        0.3,
+        12,
+        floor,
+        security
     );
 
     box(
-        "SecurityBack",
-        -1,4.6,46,
-        15,9,0.45,
-        mats.concrete2
+        "SECURITY_BACK",
+        -12,
+        3.5,
+        35,
+        8,
+        7,
+        0.4,
+        concrete,
+        security
     );
 
     box(
-        "SecurityLeft",
-        -8.2,4.6,35,
-        0.45,9,22,
-        mats.concrete2
-    );
-
-    // Security doorway.
-
-    box(
-        "SecurityDoorTop",
-        -1,5,24,
-        6,0.3,0.5,
-        mats.darkMetal
+        "SECURITY_LEFT",
+        -16,
+        3.5,
+        29,
+        0.4,
+        7,
+        12,
+        concrete,
+        security
     );
 
     box(
-        "SecurityDoorL",
-        -4,2.5,24,
-        0.3,5,0.5,
-        mats.darkMetal
+        "SECURITY_ROOF",
+        -12,
+        7,
+        29,
+        8,
+        0.4,
+        12,
+        dark,
+        security
     );
+
+    /* CCTV desk */
 
     box(
-        "SecurityDoorR",
-        2,2.5,24,
-        0.3,5,0.5,
-        mats.darkMetal
+        "CCTV_DESK",
+        -12,
+        1.1,
+        32,
+        6,
+        1.1,
+        1.2,
+        dark,
+        security
     );
 
-    textSprite(
-        "SECURITY",
-        -1,6,23.8,
-        0.52
-    );
+    /* 12 monitors */
 
-    box(
-        "SecurityDesk",
-        -1,1.1,32,
-        8,1.5,2.2,
-        mats.metal,
-        true
-    );
+    for (let row = 0; row < 3; row++) {
 
-    box(
-        "SecurityChair",
-        -1,1,28.8,
-        1.3,2,1.3,
-        mats.darkMetal,
-        true
-    );
+        for (let col = 0; col < 4; col++) {
 
-    // ================= 12 CCTV SCREENS =================
+            const x = -14.4 + col * 1.6;
+            const y = 2.5 + row * 1.25;
 
-    for(let i=0;i<12;i++) {
+            const screen = new THREE.Mesh(
+                new THREE.BoxGeometry(1.35, 0.9, 0.12),
+                new THREE.MeshStandardMaterial({
+                    color: 0x111b20,
+                    emissive: 0x13262c,
+                    emissiveIntensity: 0.7
+                })
+            );
 
-        const col = i%4;
-        const row = Math.floor(i/4);
+            screen.position.set(x, y, 34.35);
 
-        const x = -6 + col*3.4;
-        const y = 2.7 + row*1.45;
-        const z = 45.55;
+            screen.userData.isCCTV = true;
+            screen.userData.cameraNumber = row * 4 + col + 1;
 
-        const screen = box(
-            "CCTV_"+(i+1),
-            x,y,z,
-            2.55,1.05,0.14,
-            mats.black
-        );
-
-        screen.userData.isCCTV = true;
-        screen.userData.cameraNumber = i+1;
-
-        box(
-            "CCTV_Glow_"+(i+1),
-            x,y,z-0.09,
-            2.15,0.68,0.03,
-            i%3===0
-                ? mats.green
-                : mats.concrete2
-        );
+            security.add(screen);
+        }
     }
 
-    textSprite(
-        "CAMERA CONTROL",
-        -1,7.2,45.5,
-        0.46
-    );
+    tube(-12, 6.3, 28, 4);
 
-    fluorescent(
-        -1,8.8,38,
-        5.5,false
-    );
+    light(-12, 4.5, 29, 1.5);
 
-    // ================= MAINTENANCE =================
+    /* security sign */
 
     box(
-        "MaintenanceFloor",
-        7,-0.05,-44,
-        14,0.4,28,
-        mats.tileDark
+        "SECURITY_SIGN",
+        -12,
+        6,
+        34.5,
+        5,
+        0.9,
+        0.15,
+        black,
+        security
     );
 
-    box(
-        "MaintenanceBack",
-        7,4.6,-58,
-        14,9,0.45,
-        mats.concrete2
+    /* ========================================================
+       SERVICE DOOR
+       ======================================================== */
+
+    const serviceDoor = box(
+        "MAINTENANCE_DOOR",
+        3.7,
+        2.3,
+        29,
+        0.25,
+        4.5,
+        2.4,
+        dark,
+        root
     );
 
-    box(
-        "MaintenanceSide",
-        0,4.6,-44,
-        0.45,9,28,
-        mats.concrete2
-    );
+    serviceDoor.userData.interactable = true;
+    serviceDoor.userData.type = "maintenance_door";
 
-    // MAINTENANCE DOOR
+    return root;
+}
+/* ============================================================
+   NIGHT SHIFT: 3:17 AM
+   station.js — PART 3/3
+   ============================================================ */
 
-    box(
-        "MaintenanceDoorTop",
-        7,5,-29.7,
-        6,0.3,0.5,
-        mats.darkMetal
-    );
+function finishStation(THREE, root) {
 
-    box(
-        "MaintenanceDoorL",
-        4,2.5,-29.7,
-        0.3,5,0.5,
-        mats.darkMetal
-    );
+    const M = (color, roughness = 0.8, metalness = 0) =>
+        new THREE.MeshStandardMaterial({
+            color,
+            roughness,
+            metalness
+        });
 
-    box(
-        "MaintenanceDoorR",
-        10,2.5,-29.7,
-        0.3,5,0.5,
-        mats.darkMetal
-    );
+    const concrete = M(0x666666);
+    const dark = M(0x252729);
+    const floor = M(0x484b4d);
+    const metal = M(0x575c5f, 0.45, 0.75);
+    const rust = M(0x673d29);
+    const red = new THREE.MeshStandardMaterial({
+        color: 0xff2222,
+        emissive: 0xff0000,
+        emissiveIntensity: 2
+    });
 
-    textSprite(
-        "MAINTENANCE",
-        7,6,-29.5,
-        0.48
-    );
+    function box(name, x, y, z, sx, sy, sz, material, parent = root) {
 
-    // ELECTRICAL CABINETS
-
-    for(let z=-53;z<=-36;z+=5.5) {
-
-        box(
-            "ElectricalCabinet",
-            12.4,2.4,z,
-            1.6,4.2,0.5,
-            mats.metal,
-            true
+        const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(sx, sy, sz),
+            material
         );
 
-        box(
-            "CabinetPanel",
-            11.55,2.5,z,
-            0.06,2.5,0.8,
-            mats.black
-        );
+        mesh.name = name;
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        parent.add(mesh);
+        return mesh;
     }
 
-    // MAIN ELECTRICAL PANEL
+    function cylinder(name, x, y, z, radius, height, material, parent = root) {
+
+        const mesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(radius, radius, height, 12),
+            material
+        );
+
+        mesh.name = name;
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        parent.add(mesh);
+        return mesh;
+    }
+
+    function light(x, y, z, color = 0xffffff, intensity = 1.2, distance = 12) {
+
+        const l = new THREE.PointLight(
+            color,
+            intensity,
+            distance
+        );
+
+        l.position.set(x, y, z);
+        root.add(l);
+
+        return l;
+    }
+
+    /* ========================================================
+       MAINTENANCE AREA
+       ======================================================== */
+
+    const maintenance = new THREE.Group();
+    maintenance.name = "MAINTENANCE_AREA";
+    root.add(maintenance);
+
+    box(
+        "MAINTENANCE_FLOOR",
+        11,
+        0.1,
+        -48,
+        12,
+        0.3,
+        20,
+        floor,
+        maintenance
+    );
+
+    box(
+        "MAINTENANCE_BACK",
+        11,
+        4,
+        -58,
+        12,
+        8,
+        0.5,
+        concrete,
+        maintenance
+    );
+
+    box(
+        "MAINTENANCE_LEFT",
+        5,
+        4,
+        -48,
+        0.5,
+        8,
+        20,
+        concrete,
+        maintenance
+    );
+
+    box(
+        "MAINTENANCE_RIGHT",
+        17,
+        4,
+        -48,
+        0.5,
+        8,
+        20,
+        concrete,
+        maintenance
+    );
+
+    box(
+        "MAINTENANCE_ROOF",
+        11,
+        8,
+        -48,
+        12,
+        0.45,
+        20,
+        dark,
+        maintenance
+    );
+
+    /* electrical cabinets */
+
+    for (let i = 0; i < 4; i++) {
+
+        const cabinet = box(
+            "ELECTRICAL_CABINET_" + i,
+            7.3 + i * 2.5,
+            2.2,
+            -55,
+            1.8,
+            4.2,
+            0.7,
+            dark,
+            maintenance
+        );
+
+        cabinet.userData.interactable = true;
+        cabinet.userData.type = "electrical_cabinet";
+    }
+
+    /* MAIN ELECTRICAL PANEL */
 
     const panel = box(
-        "ElectricalPanel",
-        4.3,2.3,-52,
-        2.8,4.2,0.4,
-        mats.metal,
-        true
+        "MAIN_ELECTRICAL_PANEL",
+        14,
+        2.3,
+        -43,
+        2.2,
+        4.5,
+        0.35,
+        metal,
+        maintenance
     );
 
     panel.userData.interactable = true;
     panel.userData.type = "electrical_panel";
 
-    textSprite(
-        "AUTHORIZED STAFF ONLY",
-        7,6.1,-57.6,
-        0.38,
-        "#8e6d63"
-    );
+    /* warning lights */
 
-    // GENERATORS
+    for (let i = 0; i < 4; i++) {
 
-    for(let x=3;x<=10;x+=3.5) {
-
-        box(
-            "Generator",
-            x,1.3,-43,
-            2.5,2.5,2.2,
-            mats.rust,
-            true
-        );
-
-        cyl(
-            "GeneratorVent",
-            x,2.75,-43,
-            0.42,0.3,
-            mats.metal
+        cylinder(
+            "PANEL_WARNING_LIGHT",
+            13.35 + i * 0.4,
+            3.2,
+            -42.78,
+            0.08,
+            0.12,
+            red,
+            maintenance
         );
     }
 
-    fluorescent(
-        7,8.5,-36,
-        5,true
-    );
-
-    fluorescent(
-        7,8.5,-48,
-        5,false
-    );
-
-    fluorescent(
-        7,8.5,-56,
-        5,true
-    );
-
-    // ================= SERVICE LEVEL =================
+    /* work table */
 
     box(
-        "ServiceFloor",
-        18,-1.9,-78,
-        24,0.45,37,
-        mats.floorDark
+        "WORK_TABLE",
+        9,
+        1.2,
+        -49,
+        5,
+        0.3,
+        2,
+        metal,
+        maintenance
     );
 
-    box(
-        "ServiceCeiling",
-        18,6.5,-78,
-        24,0.3,37,
-        mats.darkConcrete
-    );
-
-    box(
-        "ServiceLeftWall",
-        6,2.3,-78,
-        0.45,8.5,37,
-        mats.concrete2
-    );
-
-    box(
-        "ServiceRightWall",
-        30,2.3,-78,
-        0.45,8.5,37,
-        mats.concrete2
-    );
-
-    // Stairs into underground level.
-
-    stairFlight(
-        18,-1.5,-61,
-        10,5.2,-1
-    );
-
-    // Service doors.
-
-    for(let z=-67;z>=-91;z-=8) {
-
-        box(
-            "ServiceDoor",
-            6.3,2.1,z,
-            0.15,4.2,2.8,
-            mats.rust
-        );
-
-        box(
-            "DoorHandle",
-            6.1,2.1,z,
-            0.12,0.18,0.4,
-            mats.metal
-        );
-    }
-
-    for(let z=-67;z>=-91;z-=8) {
-
-        box(
-            "ServiceDoorR",
-            29.7,2.1,z,
-            0.15,4.2,2.8,
-            mats.rust
-        );
-    }
-
-    textSprite(
-        "SERVICE LEVEL B",
-        18,5,-64,
-        0.52
-    );
-
-    fluorescent(
-        18,5.7,-68,
-        4.5,true
-    );
-
-    fluorescent(
-        18,5.7,-80,
-        4.5,false
-    );
-
-    fluorescent(
-        18,5.7,-92,
-        4.5,true
-    );
-
-    // SERVICE LEVEL RAILINGS
-
-    railingRun(
-        7.2,-1.4,-79,
-        25,false,1.05
-    );
-
-    railingRun(
-        28.8,-1.4,-79,
-        25,false,1.05
-    );
-
-    // ================= MORE PIPEWORK =================
-
-    for(let z=-70;z<=-45;z+=5) {
-
-        cyl(
-            "MaintenancePipe",
-            2.8,6,z,
-            0.16,7,
-            mats.rust,
-            0,Math.PI/2
-        );
-
-        cyl(
-            "MaintenancePipe2",
-            11,6.5,z+1,
-            0.11,6,
-            mats.metal,
-            0,Math.PI/2
-        );
-    }
-
-    // PART 3 CONTINUES BELOW
-    // ================= DEEP TUNNEL =================
-
-    box(
-        "TunnelFloor",
-        18,-2.1,-111,
-        24,0.35,28,
-        mats.black
-    );
-
-    box(
-        "TunnelLeft",
-        6,2.5,-111,
-        0.45,9,28,
-        mats.darkConcrete
-    );
-
-    box(
-        "TunnelRight",
-        30,2.5,-111,
-        0.45,9,28,
-        mats.darkConcrete
-    );
-
-    box(
-        "TunnelRoof",
-        18,7,-111,
-        24,0.4,28,
-        mats.darkConcrete
-    );
-
-    // Tunnel structural ribs.
-
-    for(let z=-99;z>=-123;z-=5) {
-
-        cyl(
-            "TunnelRib",
-            18,3.2,z,
-            11.4,0.28,
-            mats.concrete2,
-            0,Math.PI/2
-        );
-
-        fluorescent(
-            18,6.2,z,
-            3.8,
-            z%10===0
-        );
-    }
-
-    // Tunnel pipes.
-
-    for(const x of [8.2,9.3,26.7,27.8]) {
-
-        box(
-            "TunnelPipe",
-            x,5.5,-111,
-            0.18,0.18,27,
-            mats.rust
-        );
-    }
-
-    // ================= END GATE =================
-
-    for(let x=9;x<=27;x+=3) {
-
-        box(
-            "TunnelGateBar",
-            x,1.5,-126,
-            0.18,5,0.18,
-            mats.rust
-        );
-    }
-
-    box(
-        "TunnelGateTop",
-        18,4.1,-126,
-        20,0.3,0.25,
-        mats.rust
-    );
-
-    textSprite(
-        "LINE CLOSED",
-        18,5.1,-125.5,
-        0.55,
-        "#70574e"
-    );
-
-    // ================= ABANDONED CLUTTER =================
-
-    for(let i=0;i<24;i++) {
-
-        const x =
-            9+(i*7)%21;
-
-        const z =
-            -56+(i*11)%104;
-
-        box(
-            "DebrisBox",
-            x,
-            0.35,
-            z,
-
-            0.8+(i%3)*0.4,
-            0.6+(i%2)*0.3,
-            0.6,
-
-            i%2
-                ? mats.rust
-                : mats.concrete2
-        );
-    }
-
-    // Trash bins.
-
-    for(let z=-42;z<=42;z+=21) {
-
-        cyl(
-            "TrashBin",
-            24,0.8,z,
-            0.42,1.5,
-            mats.metal
-        );
-
-        box(
-            "BinLid",
-            24,1.58,z,
-            0.85,0.08,0.85,
-            mats.darkMetal
-        );
-    }
-
-    // ================= OLD POSTERS =================
-
-    function poster(x,y,z,material) {
-
-        box(
-            "OldPoster",
-            x,y,z,
-            0.06,2.4,1.55,
-            material
-        );
-
-        box(
-            "PosterStrip",
-            x-0.04,
-            y+0.72,
-            z,
-            0.03,0.08,1.3,
-            mats.white
-        );
-
-        box(
-            "PosterStrip",
-            x-0.04,
-            y-0.1,
-            z,
-            0.03,0.08,0.9,
-            mats.white
-        );
-    }
-
-    for(let z=-49;z<=49;z+=16) {
-
-        poster(
-            -5.9,
-            3,
-            z,
-            z%32===0
-                ? mats.red
-                : mats.green
-        );
-
-        poster(
-            32.15,
-            3,
-            z+5,
-            z%32===0
-                ? mats.green
-                : mats.red
-        );
-    }
-
-    // ================= CABLE BUNDLES =================
-
-    for(let z=-60;z<=55;z+=13) {
-
-        cyl(
-            "CableBundle",
-            25,8.15,z,
-            0.09,16,
-            mats.darkMetal,
-            0,Math.PI/2
-        );
-
-        cyl(
-            "CableBundleRust",
-            27,8,z+1,
-            0.07,14,
-            mats.rust,
-            0,Math.PI/2
-        );
-    }
-
-    // ================= MORE STRUCTURAL DETAIL =================
-
-    for(let z=-64;z<=58;z+=16) {
-
-        beam(
-            "SideBeam",
-            -1,6,z,
-            8,0.28,0.35,
-            mats.darkMetal
-        );
-
-        beam(
-            "SideBeamR",
-            37,6,z,
-            8,0.28,0.35,
-            mats.darkMetal
-        );
-    }
-
-    // Hanging cables.
-
-    for(let z=-55;z<=45;z+=12) {
-
-        box(
-            "HangingCable",
-            15,7.8,z,
-            0.08,2.8,0.08,
-            mats.black
-        );
-
-        box(
-            "HangingCable2",
-            21,7.5,z+2,
-            0.08,3.2,0.08,
-            mats.black
-        );
-    }
-
-    // ================= SIGNS =================
-
-    textSprite(
-        "DO NOT ENTER",
-        18,4.5,-96,
-        0.5,
-        "#927067"
-    );
-
-    textSprite(
-        "SERVICE B",
-        18,4.7,-64,
-        0.46
-    );
-
-    textSprite(
-        "MAINTENANCE",
-        7,6,-29.5,
-        0.48
-    );
-
-    // ================= HORROR SET PIECES =================
-
-    // THE PASSENGER silhouettes.
-
-    const horrorPositions = [
-        [24,2.7,-37],
-        [18,2.4,-86],
-        [21,2.7,-118]
-    ];
-
-    for(const p of horrorPositions) {
-
-        const figure = box(
-            "HorrorSilhouette",
-            p[0],
-            p[1],
-            p[2],
+    /* tools */
+
+    for (let i = 0; i < 5; i++) {
+
+        cylinder(
+            "TOOL",
+            7.3 + i * 0.7,
+            1.55,
+            -49,
+            0.06,
             0.5,
-            5.1,
-            0.35,
-            mats.black
+            rust,
+            maintenance
         );
+    }
+
+    light(8, 5.5, -48, 0xffffff, 1.4, 14);
+    light(14, 5.5, -48, 0xffffff, 1.4, 14);
+
+    /* pipes */
+
+    for (let x = 6; x <= 16; x += 2) {
+
+        box(
+            "MAINTENANCE_PIPE",
+            x,
+            6.7,
+            -48,
+            0.18,
+            0.18,
+            18,
+            metal,
+            maintenance
+        );
+    }
+
+    /* ========================================================
+       LOWER SERVICE CORRIDOR
+       ======================================================== */
+
+    box(
+        "LOWER_SERVICE_FLOOR",
+        0,
+        -0.3,
+        -77,
+        18,
+        0.4,
+        38,
+        floor
+    );
+
+    box(
+        "LOWER_LEFT_WALL",
+        -9,
+        3,
+        -77,
+        0.5,
+        6,
+        38,
+        concrete
+    );
+
+    box(
+        "LOWER_RIGHT_WALL",
+        9,
+        3,
+        -77,
+        0.5,
+        6,
+        38,
+        concrete
+    );
+
+    box(
+        "LOWER_CEILING",
+        0,
+        6.2,
+        -77,
+        18,
+        0.4,
+        38,
+        dark
+    );
+
+    /* corridor lights */
+
+    for (let z = -61; z >= -93; z -= 7) {
+
+        box(
+            "LOWER_LIGHT",
+            0,
+            5.8,
+            z,
+            3.5,
+            0.12,
+            0.15,
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 1.8
+            })
+        );
+
+        light(0, 5, z, 0xffffff, 1.0, 11);
+    }
+
+    /* cables */
+
+    for (let x = -6; x <= 6; x += 2) {
+
+        box(
+            "LOWER_CABLE",
+            x,
+            5.2,
+            -77,
+            0.1,
+            0.1,
+            36,
+            metal
+        );
+    }
+
+    /* ========================================================
+       DEEP TUNNEL
+       ======================================================== */
+
+    box(
+        "DEEP_TUNNEL_FLOOR",
+        0,
+        -0.2,
+        -111,
+        16,
+        0.4,
+        35,
+        floor
+    );
+
+    box(
+        "DEEP_TUNNEL_LEFT",
+        -8,
+        3,
+        -111,
+        0.5,
+        6,
+        35,
+        concrete
+    );
+
+    box(
+        "DEEP_TUNNEL_RIGHT",
+        8,
+        3,
+        -111,
+        0.5,
+        6,
+        35,
+        concrete
+    );
+
+    box(
+        "DEEP_TUNNEL_TOP",
+        0,
+        6,
+        -111,
+        16,
+        0.5,
+        35,
+        dark
+    );
+
+    /* tunnel ribs */
+
+    for (let z = -96; z >= -126; z -= 4) {
+
+        box(
+            "TUNNEL_RIB_LEFT",
+            -7.5,
+            3,
+            z,
+            0.3,
+            6,
+            0.35,
+            metal
+        );
+
+        box(
+            "TUNNEL_RIB_RIGHT",
+            7.5,
+            3,
+            z,
+            0.3,
+            6,
+            0.35,
+            metal
+        );
+
+        box(
+            "TUNNEL_RIB_TOP",
+            0,
+            6,
+            z,
+            15,
+            0.3,
+            0.35,
+            metal
+        );
+    }
+
+    for (let z = -98; z >= -126; z -= 7) {
+
+        box(
+            "TUNNEL_LIGHT",
+            0,
+            5.5,
+            z,
+            2.8,
+            0.12,
+            0.15,
+            new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 1.5
+            })
+        );
+
+        light(0, 4.8, z, 0xffffff, 0.8, 9);
+    }
+
+    /* end gate */
+
+    const gate = box(
+        "LINE_CLOSED_GATE",
+        0,
+        3,
+        -127,
+        14,
+        6,
+        0.4,
+        metal
+    );
+
+    gate.userData.interactable = true;
+    gate.userData.type = "story_gate";
+
+    /* ========================================================
+       HORROR SET PIECES
+       ======================================================== */
+
+    function passenger(name, x, y, z) {
+
+        const figure = new THREE.Group();
+        figure.name = name;
+
+        const body = new THREE.Mesh(
+            new THREE.CapsuleGeometry(0.38, 1.4, 6, 10),
+            new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: 1
+            })
+        );
+
+        body.position.y = 1.25;
+
+        const head = new THREE.Mesh(
+            new THREE.SphereGeometry(0.32, 12, 12),
+            new THREE.MeshStandardMaterial({
+                color: 0x090909,
+                roughness: 1
+            })
+        );
+
+        head.position.y = 2.25;
+
+        figure.add(body);
+        figure.add(head);
+
+        figure.position.set(x, y, z);
 
         figure.userData.horrorSetPiece = true;
         figure.userData.entity = "THE_PASSENGER";
+
+        root.add(figure);
+
+        return figure;
     }
 
-    // ================= LOCKED STORY GATES =================
+    passenger("PASSENGER_PLATFORM", -5, 0, -20);
 
-    for(const z of [-58,-95]) {
+    passenger("PASSENGER_TUNNEL", 3, 0, -103);
 
-        for(let x=10;x<=26;x+=3) {
+    passenger("PASSENGER_TRACK", 27, 0, 17);
 
-            box(
-                "LockedGate",
-                x,2.2,z,
-                0.16,4.4,0.16,
-                mats.rust
-            );
-        }
+    /* ========================================================
+       BROKEN EQUIPMENT / CLUTTER
+       ======================================================== */
+
+    for (let i = 0; i < 15; i++) {
+
+        const x = -11 + (i % 5) * 4;
+        const z = -52 + Math.floor(i / 5) * 4;
 
         box(
-            "LockedGateTop",
-            18,4.35,z,
-            18,0.3,0.25,
-            mats.rust
-        );
-
-        textSprite(
-            "RESTRICTED",
-            18,5,z-0.3,
-            0.45,
-            "#7b5d55"
+            "STATION_DEBRIS",
+            x,
+            0.35,
+            z,
+            0.7 + (i % 3) * 0.2,
+            0.7,
+            0.7,
+            i % 2 ? metal : rust
         );
     }
 
-    // ================= SMALL ATMOSPHERIC LIGHTS =================
+    /* ========================================================
+       3:17 FINAL ROOM
+       ======================================================== */
 
-    for(const z of [-52,-26,0,26,52]) {
-
-        pointLight(
-            "WeakStationGlow",
-            15,2.8,z,
-            0.25,
-            0xb9c5c8,
-            9
-        );
-    }
-
-    // ================= EXTRA PLATFORM DETAILS =================
-
-    // Yellow warning blocks.
-
-    for(let z=-50;z<=42;z+=12) {
-
-        box(
-            "WarningBlock",
-            29.8,0.55,z,
-            0.35,0.25,2.5,
-            mats.yellow
-        );
-    }
-
-    // Metal utility boxes.
-
-    for(let z=-45;z<=45;z+=15) {
-
-        box(
-            "UtilityBox",
-            2.2,1.1,z,
-            1.4,2.2,1.1,
-            mats.darkMetal,
-            true
-        );
-
-        box(
-            "UtilityPanel",
-            1.45,1.1,z,
-            0.05,1.2,0.7,
-            mats.metal
-        );
-    }
-
-    // ================= FINAL STORY AREA =================
+    const finalRoom = new THREE.Group();
+    finalRoom.name = "THREE_SEVENTEEN_ROOM";
+    root.add(finalRoom);
 
     box(
-        "FinalRoomFloor",
-        18,-1.8,-119,
-        22,0.35,10,
-        mats.tileDark
+        "FINAL_ROOM_FLOOR",
+        0,
+        0,
+        -136,
+        14,
+        0.4,
+        14,
+        floor,
+        finalRoom
     );
 
     box(
-        "FinalRoomBack",
-        18,3,-124,
-        22,7,0.4,
-        mats.darkConcrete
-    );
-
-    box(
-        "FinalRoomLeft",
-        7,3,-119,
-        0.4,7,10,
-        mats.darkConcrete
-    );
-
-    box(
-        "FinalRoomRight",
-        29,3,-119,
-        0.4,7,10,
-        mats.darkConcrete
-    );
-
-    fluorescent(
-        18,6.2,-119,
+        "FINAL_ROOM_BACK",
+        0,
         4,
-        true
+        -143,
+        14,
+        8,
+        0.5,
+        concrete,
+        finalRoom
     );
 
-    textSprite(
-        "3:17",
-        18,4.5,-123.6,
-        0.85,
-        "#8f7068"
+    box(
+        "FINAL_ROOM_LEFT",
+        -7,
+        4,
+        -136,
+        0.5,
+        8,
+        14,
+        concrete,
+        finalRoom
     );
 
-    // ================= RETURN DATA =================
+    box(
+        "FINAL_ROOM_RIGHT",
+        7,
+        4,
+        -136,
+        0.5,
+        8,
+        14,
+        concrete,
+        finalRoom
+    );
+
+    box(
+        "FINAL_ROOM_LIGHT",
+        0,
+        7,
+        -136,
+        5,
+        0.12,
+        0.15,
+        new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 2.5
+        }),
+        finalRoom
+    );
+
+    light(0, 5, -136, 0xffffff, 1.8, 14);
+
+    /* 3:17 sign */
+
+    if (typeof document !== "undefined") {
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 256;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#050505";
+        ctx.fillRect(0, 0, 512, 256);
+
+        ctx.fillStyle = "#ff2222";
+        ctx.font = "bold 110px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("3:17", 256, 128);
+
+        const texture = new THREE.CanvasTexture(canvas);
+
+        const sign = new THREE.Mesh(
+            new THREE.PlaneGeometry(5, 2.5),
+            new THREE.MeshBasicMaterial({
+                map: texture
+            })
+        );
+
+        sign.position.set(0, 4, -142.65);
+        finalRoom.add(sign);
+    }
+
+    /* ========================================================
+       STORY OBJECTS
+       ======================================================== */
+
+    const storyDesk = box(
+        "STORY_DESK",
+        0,
+        1,
+        -132,
+        4,
+        1.6,
+        1.5,
+        dark,
+        finalRoom
+    );
+
+    const oldRadio = box(
+        "OLD_RADIO",
+        0,
+        2,
+        -132.5,
+        1.4,
+        0.7,
+        0.7,
+        metal,
+        finalRoom
+    );
+
+    oldRadio.userData.interactable = true;
+    oldRadio.userData.type = "radio";
+
+    /* ========================================================
+       STORY GATES
+       ======================================================== */
+
+    const gate1 = box(
+        "STORY_GATE_1",
+        -4,
+        2,
+        45,
+        3,
+        4,
+        0.3,
+        metal
+    );
+
+    gate1.userData.interactable = true;
+    gate1.userData.type = "story_gate";
+
+    const gate2 = box(
+        "STORY_GATE_2",
+        5,
+        2,
+        -35,
+        3,
+        4,
+        0.3,
+        metal
+    );
+
+    gate2.userData.interactable = true;
+    gate2.userData.type = "story_gate";
+
+    /* ========================================================
+       FINAL STATION DATA
+       ======================================================== */
+
+    root.userData.stationName = "NIGHT SHIFT METRO TERMINAL";
+    root.userData.mainCharacter = "ETHAN COLE";
 
     return {
-
         root,
 
-        spawn: new THREE.Vector3(
-            18,
-            2,
-            54
-        ),
+        /* starting position */
+        spawn: new THREE.Vector3(-7, 2, 30),
 
+        /* playable area */
         bounds: {
-
-            minX: -6,
-            maxX: 42,
-
-            minZ: -127,
-            maxZ: 78
+            minX: -18,
+            maxX: 38,
+            minZ: -143,
+            maxZ: 74
         },
 
+        /* important locations */
         locations: {
 
             platform:
-                new THREE.Vector3(18,2,0),
+                new THREE.Vector3(-7, 2, 10),
 
             ticketHall:
-                new THREE.Vector3(18,2,63),
+                new THREE.Vector3(-7, 2, 61),
+
+            waitingRoom:
+                new THREE.Vector3(11, 2, 61),
 
             security:
-                new THREE.Vector3(-1,2,35),
+                new THREE.Vector3(-12, 2, 29),
 
             maintenance:
-                new THREE.Vector3(7,2,-44),
+                new THREE.Vector3(11, 2, -48),
 
             lowerLevel:
-                new THREE.Vector3(18,0,-78),
+                new THREE.Vector3(0, 2, -77),
 
             deepTunnel:
-                new THREE.Vector3(18,0,-111)
+                new THREE.Vector3(0, 2, -111),
+
+            finalRoom:
+                new THREE.Vector3(0, 2, -136)
         }
     };
+}
+
+
+/* ============================================================
+   FINAL BUILDER
+   ============================================================ */
+
+function createStation(THREE) {
+
+    const result = buildStation(THREE);
+
+    buildStationRooms(THREE, result);
+
+    finishStation(THREE, result);
+
+    return result;
 }
