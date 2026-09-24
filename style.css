@@ -1,7 +1,12 @@
+/* =========================================================
+   NIGHT SHIFT: 3:17 AM
+   MASTER STYLE
+   ========================================================= */
+
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
 html,
@@ -9,52 +14,601 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #000;
-    font-family: Arial, sans-serif;
-    color: white;
+    background: #030405;
+    color: #eeeeee;
+    font-family: Arial, Helvetica, sans-serif;
 }
+
+body {
+    user-select: none;
+}
+
+
+/* =========================================================
+   GAME
+   ========================================================= */
 
 #game {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
-    background: #000;
+    background: #030405;
 }
 
-/* =========================
+
+/* =========================================================
    3D CANVAS
-========================= */
+   ========================================================= */
 
 #gameCanvas {
     position: absolute;
     inset: 0;
+
+    display: block;
+
     width: 100%;
     height: 100%;
-    display: block;
+
+    background: #030405;
+
+    z-index: 1;
 }
 
-/* =========================
+
+/* =========================================================
    HUD
-========================= */
+   ========================================================= */
 
 #hud {
     position: absolute;
     inset: 0;
+
     pointer-events: none;
+
     z-index: 10;
 }
 
-/* Top-left */
+
+/* =========================================================
+   NIGHT SHIFT CLOCK
+   ========================================================= */
 
 #mission {
     position: absolute;
-    top: 25px;
-    left: 25px;
-    text-shadow: 0 2px 5px black;
+
+    top: 24px;
+    left: 28px;
+
+    color: #d7d7d7;
+
+    text-shadow:
+        0 2px 8px #000;
+
+    letter-spacing: 2px;
 }
 
 #mission .label {
-    font-size: 11px;
+    font-size: 12px;
+
+    color: #777;
+
+    letter-spacing: 4px;
+
+    margin-bottom: 5px;
+}
+
+#time {
+    font-size: 26px;
+
+    font-weight: 600;
+
+    letter-spacing: 2px;
+}
+
+
+/* =========================================================
+   FLASHLIGHT BATTERY
+   ========================================================= */
+
+#battery {
+    position: absolute;
+
+    top: 27px;
+    right: 28px;
+
+    font-size: 12px;
+
+    letter-spacing: 2px;
+
+    color: #888;
+
+    text-shadow:
+        0 2px 8px #000;
+}
+
+#batteryValue {
+    color: #ddd;
+
+    margin-left: 6px;
+}
+
+
+/* =========================================================
+   CROSSHAIR
+   ========================================================= */
+
+#crosshair {
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(
+        -50%,
+        -50%
+    );
+
+    font-size: 18px;
+
+    color: rgba(
+        255,
+        255,
+        255,
+        0.75
+    );
+
+    text-shadow:
+        0 0 5px #000;
+}
+
+
+/* =========================================================
+   INTERACTION
+   ========================================================= */
+
+#interaction {
+    position: absolute;
+
+    left: 50%;
+    bottom: 25%;
+
+    transform: translateX(-50%);
+
+    min-height: 20px;
+
+    color: #eeeeee;
+
+    font-size: 13px;
+
+    letter-spacing: 1px;
+
+    text-align: center;
+
+    text-shadow:
+        0 2px 8px #000;
+}
+
+
+/* =========================================================
+   OBJECTIVE
+   ========================================================= */
+
+#objective {
+    position: absolute;
+
+    left: 28px;
+    bottom: 28px;
+
+    width: 300px;
+
+    padding: 13px 15px;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            0.45
+        );
+
+    border-left:
+        2px solid #777;
+
+    backdrop-filter:
+        blur(4px);
+
+    text-shadow:
+        0 2px 5px #000;
+}
+
+#objective span {
+    display: block;
+
+    font-size: 10px;
+
     letter-spacing: 3px;
-    opacity
+
+    color: #777;
+
+    margin-bottom: 6px;
+}
+
+#objective p {
+    font-size: 13px;
+
+    line-height: 1.4;
+
+    color: #ddd;
+}
+
+
+/* =========================================================
+   START SCREEN
+   ========================================================= */
+
+#startScreen {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 50;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    text-align: center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(35, 35, 40, 0.45),
+            rgba(0, 0, 0, 0.96)
+        );
+
+    color: white;
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+#startScreen .title {
+    margin-bottom: 28px;
+}
+
+#startScreen h1 {
+    font-size: clamp(
+        42px,
+        8vw,
+        88px
+    );
+
+    font-weight: 800;
+
+    letter-spacing: 12px;
+
+    line-height: 0.95;
+
+    text-shadow:
+        0 0 20px rgba(
+            255,
+            255,
+            255,
+            0.08
+        );
+}
+
+#startScreen h2 {
+    margin-top: 14px;
+
+    font-size: clamp(
+        20px,
+        4vw,
+        38px
+    );
+
+    font-weight: 300;
+
+    letter-spacing: 12px;
+
+    color: #888;
+}
+
+
+/* =========================================================
+   WARNING
+   ========================================================= */
+
+.warning {
+    margin-bottom: 28px;
+
+    color: #777;
+
+    font-size: 11px;
+
+    letter-spacing: 5px;
+}
+
+
+/* =========================================================
+   START BUTTON
+   ========================================================= */
+
+#startButton {
+    padding: 14px 30px;
+
+    border: 1px solid #777;
+
+    background:
+        rgba(
+            10,
+            10,
+            10,
+            0.8
+        );
+
+    color: #eee;
+
+    font-size: 13px;
+
+    letter-spacing: 3px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        transform 0.2s;
+}
+
+#startButton:hover {
+    background: #202020;
+
+    border-color: #ccc;
+
+    transform:
+        translateY(-2px);
+}
+
+#startButton:active {
+    transform:
+        translateY(0);
+}
+
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+.controls {
+    margin-top: 25px;
+
+    color: #666;
+
+    font-size: 11px;
+
+    line-height: 1.8;
+
+    letter-spacing: 1px;
+}
+
+
+/* =========================================================
+   PAUSE SCREEN
+   ========================================================= */
+
+#pauseScreen {
+    position: absolute;
+
+    inset: 0;
+
+    z-index: 45;
+
+    display: none;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 12px;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            0.75
+        );
+
+    backdrop-filter:
+        blur(5px);
+}
+
+#pauseScreen h2 {
+    margin-bottom: 15px;
+
+    font-size: 30px;
+
+    letter-spacing: 6px;
+}
+
+#pauseScreen button {
+    width: 180px;
+
+    padding: 11px;
+
+    border: 1px solid #555;
+
+    background: #101010;
+
+    color: #ddd;
+
+    cursor: pointer;
+
+    letter-spacing: 2px;
+}
+
+#pauseScreen button:hover {
+    background: #252525;
+
+    border-color: #aaa;
+}
+
+
+/* =========================================================
+   EVENT MESSAGE
+   ========================================================= */
+
+#eventMessage {
+    position: absolute;
+
+    left: 50%;
+    top: 18%;
+
+    transform:
+        translate(
+            -50%,
+            -20px
+        );
+
+    z-index: 40;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        opacity 0.4s,
+        transform 0.4s;
+}
+
+#eventMessage.show {
+    opacity: 1;
+
+    transform:
+        translate(
+            -50%,
+            0
+        );
+}
+
+#eventText {
+    padding: 12px 22px;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            0.75
+        );
+
+    border-left:
+        2px solid #aaa;
+
+    color: #ddd;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+
+    text-align: center;
+
+    text-shadow:
+        0 2px 8px #000;
+
+    max-width: 600px;
+}
+
+
+/* =========================================================
+   DARK VIGNETTE
+   ========================================================= */
+
+#game::after {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    z-index: 8;
+
+    background:
+        radial-gradient(
+            ellipse at center,
+            transparent 45%,
+            rgba(
+                0,
+                0,
+                0,
+                0.65
+            ) 100%
+        );
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (
+    max-width: 700px
+) {
+
+    #mission {
+        top: 15px;
+        left: 15px;
+    }
+
+    #time {
+        font-size: 20px;
+    }
+
+    #battery {
+        top: 18px;
+        right: 15px;
+
+        font-size: 10px;
+    }
+
+    #objective {
+        left: 15px;
+        bottom: 15px;
+
+        width: 240px;
+    }
+
+    #startScreen h1 {
+        letter-spacing: 6px;
+    }
+
+    #startScreen h2 {
+        letter-spacing: 7px;
+    }
+}
+
+
+/* =========================================================
+   REMOVE TEXT SELECTION
+   ========================================================= */
+
+button {
+    font-family: inherit;
+}
+
+button:focus {
+    outline: none;
+}
