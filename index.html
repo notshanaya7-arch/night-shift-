@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -11,92 +13,77 @@
     <title>NIGHT SHIFT: 3:17 AM</title>
 
     <link rel="stylesheet" href="style.css">
+
+    <!-- THREE.JS IMPORT MAP -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+    }
+    </script>
+
 </head>
+
 
 <body>
 
-    <!-- =========================
-         GAME
-    ========================== -->
+<div id="game">
 
-    <div id="game">
+    <!-- 3D GAME -->
+    <canvas id="gameCanvas"></canvas>
 
-        <!-- Three.js will render the 3D world here -->
-        <canvas id="gameCanvas"></canvas>
 
-        <!-- =========================
-             PLAYER HUD
-        ========================== -->
+    <!-- HUD -->
+    <div id="hud">
 
-        <div id="hud">
+        <div id="mission">
 
-            <!-- Top-left -->
-            <div id="mission">
-                <div class="label">NIGHT SHIFT</div>
-                <div id="time">11:00 PM</div>
+            <div class="label">
+                NIGHT SHIFT
             </div>
 
-            <!-- Top-right -->
-            <div id="battery">
-                FLASHLIGHT
-                <span id="batteryValue">100%</span>
-            </div>
-
-            <!-- Center -->
-            <div id="crosshair">+</div>
-
-            <!-- Bottom-center -->
-            <div id="interaction"></div>
-
-            <!-- Bottom-left -->
-            <div id="objective">
-                <span>OBJECTIVE</span>
-                <p id="objectiveText">
-                    Check the electrical panel.
-                </p>
+            <div id="time">
+                11:00 PM
             </div>
 
         </div>
 
-        <!-- =========================
-             START SCREEN
-        ========================== -->
 
-        <div id="startScreen">
+        <div id="battery">
 
-            <div class="title">
-                <h1>NIGHT SHIFT</h1>
-                <h2>3:17 AM</h2>
-            </div>
+            FLASHLIGHT
 
-            <p class="warning">
-                NIGHT MAINTENANCE SHIFT
-            </p>
+            <span id="batteryValue">
+                100%
+            </span>
 
-            <button id="startButton">
-                START SHIFT
-            </button>
+        </div>
 
-            <p class="controls">
-                WASD — Move<br>
-                SHIFT — Sprint<br>
-                F — Flashlight<br>
-                E — Interact<br>
-                ESC — Pause
+
+        <div id="crosshair">
+            +
+        </div>
+
+
+        <div id="interaction"></div>
+
+
+        <div id="objective">
+
+            <span>
+                OBJECTIVE
+            </span>
+
+            <p id="objectiveText">
+                Check the electrical panel.
             </p>
 
         </div>
 
-        <!-- =========================
-             PAUSE MENU
-        ========================== -->
+    </div>
 
-        <div id="pauseScreen">
 
-            <h2>SHIFT PAUSED</h2>
+    <!-- START SCREEN -->
 
-            <button id="resumeButton">
-                RESUME
-            </button>
-
-           
+    <div id="
