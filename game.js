@@ -32,12 +32,13 @@ const errorText = document.getElementById("errorText");
 
 const scene = new THREE.Scene();
 
-scene.background = new THREE.Color(0x050608);
+scene.backround = new
+   THREE.Color(0x151820);
 
 scene.fog = new THREE.FogExp2(
-  0x050608,
-  0.035
-);
+   0x151820,
+   0.012
+   );
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -1016,10 +1017,10 @@ createKey();
 
 const ambientLight =
   new THREE.HemisphereLight(
-    0x20242c,
-    0x050505,
-    0.28
-  );
+       0xb8c7d6
+         4,
+        15
+);
 
 scene.add(ambientLight);
 
