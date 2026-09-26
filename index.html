@@ -1,677 +1,449 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NIGHT SHIFT — 3:17 AM</title>
-
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
-}
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; color: #d8d2bd; }
+  canvas { display: block; }
 
-html,body{
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#030405;
-    color:#eee;
-    font-family:Arial,Helvetica,sans-serif;
-}
+  #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  #ui * { pointer-events: auto; }
 
-#gameCanvas{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-    display:block;
-}
+  /* ---------- Menu ---------- */
+  #menu {
+    position: fixed; inset: 0; background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+  }
+  #menu .tag { letter-spacing: 6px; font-size: 12px; color: #6b6b5f; margin-bottom: 10px; }
+  #menu h1 { font-size: 42px; letter-spacing: 10px; margin: 0; color: #e8e2c8; text-shadow: 0 0 20px rgba(255,180,80,0.15); }
+  #menu .time { font-size: 22px; color: #a33; letter-spacing: 4px; margin-top: 6px; }
+  #menu .employee { margin-top: 30px; font-size: 13px; color: #8a8474; }
+  #menu .employee b { color: #d8d2bd; }
+  #menu .menubtns { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  #menu button {
+    background: none; border: 1px solid #4a4736; color: #cfc9ae; padding: 10px 40px;
+    font-family: inherit; letter-spacing: 4px; font-size: 13px; cursor: pointer; transition: all .2s;
+  }
+  #menu button:hover { background: #cfc9ae; color: #111; }
+  #menu .quote { position: absolute; bottom: 30px; font-size: 11px; color: #55503f; letter-spacing: 2px; }
 
-/* ================= FRONT PAGE ================= */
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; display: none; }
+  #clock { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-size: 20px; letter-spacing: 3px; color: #d8d2bd; text-shadow: 0 0 6px #000; }
+  #battery { position: absolute; top: 16px; right: 20px; font-size: 13px; color: #9c9; letter-spacing: 1px; }
+  #tasks { position: absolute; top: 55px; left: 20px; font-size: 12px; color: #cfc9ae; line-height: 1.8; background: rgba(0,0,0,0.35); padding: 10px 14px; border-left: 2px solid #4a4736; }
+  #tasks .done { color: #667; text-decoration: line-through; }
+  #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+  #prompt { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #e8e2c8; background: rgba(0,0,0,0.5); padding: 6px 14px; display: none; letter-spacing: 1px; }
+  #controls-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #55503f; letter-spacing: 2px; }
+  #eventText { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); font-size: 20px; letter-spacing: 3px; color: #eee; text-align: center; text-shadow: 0 0 10px #000; opacity: 0; transition: opacity 1s; width: 80%; }
 
-#startScreen{
-    position:fixed;
-    inset:0;
-    z-index:100;
-    overflow:hidden;
-    background:
-        radial-gradient(
-            ellipse at 50% 45%,
-            rgba(60,68,78,.16) 0%,
-            rgba(4,5,7,.72) 48%,
-            #020304 100%
-        );
-}
+  /* ---------- CCTV overlay ---------- */
+  #cctv { position: fixed; inset: 0; background: #000; display: none; z-index: 50; }
+  #cctv canvas { width: 100%; height: 100%; }
+  #cctvLabel { position: absolute; top: 16px; left: 20px; color: #6f6; font-size: 13px; letter-spacing: 2px; }
+  #cctvList { position: absolute; bottom: 16px; left: 20px; color: #6f6; font-size: 11px; letter-spacing: 1px; }
+  #cctv .scanline { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px, rgba(0,0,0,0.15) 2px); mix-blend-mode: multiply; }
+  #cctvExit { position: absolute; top: 16px; right: 20px; color: #6f6; font-size: 11px; }
 
-/* fake distant station lights */
-
-#startScreen::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    background:
-        linear-gradient(
-            90deg,
-            transparent 0 12%,
-            rgba(120,130,140,.035) 12.2% 12.4%,
-            transparent 12.6% 30%,
-            rgba(120,130,140,.025) 30.2% 30.4%,
-            transparent 30.6% 70%,
-            rgba(120,130,140,.025) 70.2% 70.4%,
-            transparent 70.6% 88%,
-            rgba(120,130,140,.035) 88.2% 88.4%,
-            transparent 88.6%
-        );
-    opacity:.9;
-}
-
-/* cinematic vignette */
-
-#startScreen::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background:
-        radial-gradient(
-            ellipse at center,
-            transparent 35%,
-            rgba(0,0,0,.35) 65%,
-            rgba(0,0,0,.88) 100%
-        );
-}
-
-/* fog */
-
-.fog{
-    position:absolute;
-    width:80%;
-    height:45%;
-    left:10%;
-    bottom:8%;
-    background:
-        radial-gradient(
-            ellipse,
-            rgba(180,190,200,.055),
-            transparent 70%
-        );
-    filter:blur(35px);
-    animation:fogMove 9s ease-in-out infinite alternate;
-}
-
-@keyframes fogMove{
-    from{
-        transform:translateX(-5%);
-        opacity:.35;
-    }
-    to{
-        transform:translateX(5%);
-        opacity:.7;
-    }
-}
-
-/* ================= CONTENT ================= */
-
-.front{
-    position:relative;
-    z-index:5;
-    width:100%;
-    height:100%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-}
-
-.content{
-    width:min(92%,700px);
-    transform:translateY(-2%);
-}
-
-/* little top label */
-
-.eyebrow{
-    font-size:10px;
-    letter-spacing:7px;
-    color:#777;
-    margin-bottom:24px;
-    text-transform:uppercase;
-}
-
-/* title */
-
-.title{
-    position:relative;
-    font-size:clamp(48px,10vw,100px);
-    line-height:.9;
-    font-weight:900;
-    letter-spacing:clamp(5px,1.5vw,14px);
-    color:#e9e9e9;
-    text-shadow:
-        0 2px 2px #000,
-        0 0 18px rgba(255,255,255,.08),
-        0 0 55px rgba(0,0,0,.9);
-}
-
-/* tiny glitch */
-
-.title::before,
-.title::after{
-    content:"NIGHT SHIFT";
-    position:absolute;
-    left:0;
-    right:0;
-    opacity:.12;
-    pointer-events:none;
-}
-
-.title::before{
-    top:-1px;
-    transform:translateX(2px);
-}
-
-.title::after{
-    top:1px;
-    transform:translateX(-2px);
-}
-
-/* subtitle */
-
-.time{
-    margin-top:18px;
-    font-size:clamp(14px,2.5vw,22px);
-    letter-spacing:11px;
-    color:#8b8b8b;
-}
-
-/* line */
-
-.line{
-    width:120px;
-    height:1px;
-    background:#555;
-    margin:30px auto;
-    opacity:.7;
-}
-
-/* employee */
-
-.employee-label{
-    font-size:9px;
-    letter-spacing:4px;
-    color:#555;
-}
-
-.employee-name{
-    margin-top:7px;
-    font-size:14px;
-    letter-spacing:5px;
-    color:#aaa;
-}
-
-/* ================= BUTTON ================= */
-
-.buttons{
-    width:min(360px,90%);
-    margin:40px auto 0;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-}
-
-.buttons button{
-    appearance:none;
-    border:1px solid rgba(150,150,150,.28);
-    background:rgba(4,5,6,.7);
-    color:#aaa;
-    min-height:48px;
-    font-size:11px;
-    letter-spacing:4px;
-    cursor:pointer;
-    transition:
-        background .25s,
-        color .25s,
-        border .25s,
-        transform .25s;
-}
-
-.buttons button:hover{
-    background:#ddd;
-    border-color:#ddd;
-    color:#050505;
-    transform:scale(1.015);
-}
-
-.buttons button:active{
-    transform:scale(.985);
-}
-
-#startBtn{
-    border-color:#888;
-    color:#eee;
-    background:rgba(25,26,28,.8);
-}
-
-/* ================= BOTTOM INFO ================= */
-
-.bottom{
-    margin-top:30px;
-    display:flex;
-    justify-content:center;
-    gap:22px;
-    flex-wrap:wrap;
-    color:#444;
-    font-size:8px;
-    letter-spacing:2px;
-}
-
-.warning{
-    margin-top:18px;
-    font-size:8px;
-    letter-spacing:3px;
-    color:#3d3d3d;
-}
-
-/* ================= HUD ================= */
-
-#hud{
-    display:none;
-    position:fixed;
-    inset:0;
-    z-index:20;
-    pointer-events:none;
-}
-
-#mission{
-    position:absolute;
-    top:24px;
-    left:26px;
-    font-size:11px;
-    letter-spacing:3px;
-    color:#ddd;
-}
-
-#objective{
-    position:absolute;
-    top:47px;
-    left:26px;
-    max-width:350px;
-    font-size:11px;
-    color:#777;
-}
-
-#gameTime{
-    position:absolute;
-    top:24px;
-    right:26px;
-    font-size:15px;
-    letter-spacing:3px;
-}
-
-#battery{
-    position:absolute;
-    top:47px;
-    right:26px;
-    font-size:10px;
-    color:#777;
-    letter-spacing:2px;
-}
-
-#crosshair{
-    position:absolute;
-    top:50%;
-    left:50%;
-    width:4px;
-    height:4px;
-    border-radius:50%;
-    background:#ddd;
-    transform:translate(-50%,-50%);
-}
-
-#interaction{
-    position:absolute;
-    left:50%;
-    bottom:24%;
-    transform:translateX(-50%);
-    color:#bbb;
-    font-size:11px;
-    letter-spacing:3px;
-    opacity:0;
-    transition:opacity .2s;
-}
-
-#eventMessage{
-    display:none;
-    position:absolute;
-    left:50%;
-    top:43%;
-    transform:translate(-50%,-50%);
-    width:90%;
-    text-align:center;
-    font-size:clamp(30px,7vw,75px);
-    letter-spacing:9px;
-    color:#eee;
-    text-shadow:0 0 35px #000;
-}
-
-/* ================= PAUSE ================= */
-
-.hidden{
-    display:none!important;
-}
-
-#pauseScreen{
-    position:fixed;
-    inset:0;
-    z-index:200;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(0,0,0,.86);
-    text-align:center;
-}
-
-.pause-box h2{
-    font-size:clamp(30px,6vw,55px);
-    letter-spacing:8px;
-}
-
-.pause-box p{
-    margin-top:16px;
-    color:#666;
-    font-size:10px;
-    letter-spacing:4px;
-}
-
-/* ================= ERROR ================= */
-
-#errorScreen{
-    display:none;
-    position:fixed;
-    inset:0;
-    z-index:300;
-    align-items:center;
-    justify-content:center;
-    background:#030405;
-    text-align:center;
-}
-
-#errorScreen h2{
-    color:#aaa;
-    letter-spacing:5px;
-}
-
-#errorScreen p{
-    margin-top:12px;
-    color:#555;
-    font-size:11px;
-    letter-spacing:2px;
-}
-
-@media(max-width:500px){
-    .title{
-        letter-spacing:5px;
-    }
-
-    .time{
-        letter-spacing:7px;
-    }
-
-    .employee-name{
-        letter-spacing:3px;
-    }
-}
+  /* ---------- Pause ---------- */
+  #pause { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; z-index: 90; align-items: center; justify-content: center; flex-direction: column; }
+  #pause h2 { letter-spacing: 6px; color: #d8d2bd; }
+  #pause p { color: #8a8474; font-size: 12px; }
 </style>
-
-<script type="importmap">
-{
-    "imports":{
-        "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
-    }
-}
-</script>
 </head>
-
 <body>
 
-<canvas id="gameCanvas"></canvas>
+<div id="ui">
 
-<div id="startScreen">
-
-    <div class="fog"></div>
-
-    <div class="front">
-
-        <div class="content">
-
-            <div class="eyebrow">
-                NIGHT OPERATIONS // 001
-            </div>
-
-            <div class="title">
-                NIGHT SHIFT
-            </div>
-
-            <div class="time">
-                3:17 AM
-            </div>
-
-            <div class="line"></div>
-
-            <div class="employee-label">
-                ASSIGNED EMPLOYEE
-            </div>
-
-            <div class="employee-name">
-                ETHAN COLE
-            </div>
-
-            <div class="buttons">
-
-                <button id="startBtn">
-                    NEW SHIFT
-                </button>
-
-                <button id="continueBtn">
-                    CONTINUE
-                </button>
-
-                <button id="settingsBtn">
-                    SETTINGS
-                </button>
-
-                <button id="creditsBtn">
-                    CREDITS
-                </button>
-
-            </div>
-
-            <div class="bottom">
-                <span>WASD MOVE</span>
-                <span>MOUSE LOOK</span>
-                <span>F FLASHLIGHT</span>
-                <span>E INTERACT</span>
-            </div>
-
-            <div class="warning">
-                THE LAST TRAIN LEFT 17 YEARS AGO.
-            </div>
-
-        </div>
-
+  <!-- MAIN MENU -->
+  <div id="menu">
+    <div class="tag">NIGHT OPERATIONS // 001</div>
+    <h1>NIGHT SHIFT</h1>
+    <div class="time">3:17 AM</div>
+    <div class="employee">ASSIGNED EMPLOYEE<br/><b>ETHAN COLE</b></div>
+    <div class="menubtns">
+      <button id="btnNew">NEW SHIFT</button>
+      <button id="btnContinue">CONTINUE</button>
+      <button id="btnSettings">SETTINGS</button>
+      <button id="btnCredits">CREDITS</button>
     </div>
+    <div class="quote">THE LAST TRAIN LEFT 17 YEARS AGO.</div>
+  </div>
 
-</div><div id="hud">
-
-    <div id="mission">
-        NIGHT SHIFT — 11:00 PM
-    </div>
-
-    <div id="objective">
-        Begin your shift. Check the station.
-    </div>
-
-    <div id="gameTime">
-        11:00 PM
-    </div>
-
-    <div id="battery">
-        BATTERY 100%
-    </div>
-
+  <!-- HUD -->
+  <div id="hud">
+    <div id="clock">11:00 PM</div>
+    <div id="battery">BATTERY 100%</div>
+    <div id="tasks"></div>
     <div id="crosshair"></div>
+    <div id="prompt">E — INTERACT</div>
+    <div id="eventText"></div>
+    <div id="controls-hint">WASD MOVE · MOUSE LOOK · F FLASHLIGHT · E INTERACT · C CCTV · ESC PAUSE</div>
+  </div>
 
-    <div id="interaction">
-        E — INTERACT
-    </div>
+  <!-- CCTV -->
+  <div id="cctv">
+    <div id="cctvLabel">CAM 01 — PLATFORM</div>
+    <div id="cctvList">1 PLATFORM · 2 TICKET HALL · 3 TRACK · 4 DEEP TUNNEL</div>
+    <div id="cctvExit">[C] EXIT</div>
+    <div class="scanline"></div>
+  </div>
 
-    <div id="eventMessage"></div>
-
-</div>
-
-
-<div id="pauseScreen" class="hidden">
-
-    <div class="pause-box">
-
-        <h2>SHIFT PAUSED</h2>
-
-        <p>PRESS ESC TO RETURN</p>
-
-    </div>
-
-</div>
-
-
-<div id="errorScreen">
-
-    <div>
-
-        <h2>NIGHT SHIFT ERROR</h2>
-
-        <p>
-            THE STATION NEVER CLOSED.
-        </p>
-
-    </div>
+  <!-- PAUSE -->
+  <div id="pause">
+    <h2>SHIFT PAUSED</h2>
+    <p>PRESS ESC TO RETURN</p>
+  </div>
 
 </div>
 
-
-<script>
-/* =========================
-   START BUTTON
-========================= */
-
-const startBtn =
-    document.getElementById(
-        "startBtn"
-    );
-
-const startScreen =
-    document.getElementById(
-        "startScreen"
-    );
-
-const hud =
-    document.getElementById(
-        "hud"
-    );
-
-startBtn.addEventListener(
-    "click",
-    function(){
-
-        console.log(
-            "NEW SHIFT CLICKED"
-        );
-
-        startScreen.style.display =
-            "none";
-
-        hud.style.display =
-            "block";
-
-        window.dispatchEvent(
-            new Event(
-                "startShift"
-            )
-        );
-
-    }
-);
-
-
-/* =========================
-   OTHER MENU BUTTONS
-========================= */
-
-document.getElementById(
-    "continueBtn"
-).addEventListener(
-    "click",
-    function(){
-
-        console.log(
-            "CONTINUE — no saved shift yet."
-        );
-
-    }
-);
-
-
-document.getElementById(
-    "settingsBtn"
-).addEventListener(
-    "click",
-    function(){
-
-        alert(
-            "SETTINGS\n\nMouse sensitivity: default\nGraphics: High"
-        );
-
-    }
-);
-
-
-document.getElementById(
-    "creditsBtn"
-).addEventListener(
-    "click",
-    function(){
-
-        alert(
-            "NIGHT SHIFT: 3:17 AM\n\nETHAN COLE\n\nTHE STATION NEVER CLOSED."
-        );
-
-    }
-);
-
-
-/* =========================
-   LOAD GAME
-========================= */
-
-window.addEventListener(
-    "error",
-    function(event){
-
-        console.error(
-            "GAME ERROR:",
-            event.error
-        );
-
-    }
-);
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
 </script>
 
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-<script
-    type="module"
-    src="./game.js">
+/* =========================================================
+   NIGHT SHIFT — 3:17 AM  (core prototype)
+   ========================================================= */
+
+// ---------- Renderer / Scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020202);
+scene.fog = new THREE.FogExp2(0x030405, 0.05);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 1.7, 4);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- Movement (PointerLockControls) ----------
+const controls = new PointerLockControls(camera, document.body);
+const move = { f: false, b: false, l: false, r: false };
+let velocity = new THREE.Vector3();
+
+document.addEventListener('keydown', (e) => {
+  if (!game.running) return;
+  switch (e.code) {
+    case 'KeyW': move.f = true; break;
+    case 'KeyS': move.b = true; break;
+    case 'KeyA': move.l = true; break;
+    case 'KeyD': move.r = true; break;
+    case 'KeyF': toggleFlashlight(); break;
+    case 'KeyE': tryInteract(); break;
+    case 'KeyC': toggleCCTV(); break;
+    case 'Escape': togglePause(); break;
+  }
+});
+document.addEventListener('keyup', (e) => {
+  switch (e.code) {
+    case 'KeyW': move.f = false; break;
+    case 'KeyS': move.b = false; break;
+    case 'KeyA': move.l = false; break;
+    case 'KeyD': move.r = false; break;
+  }
+});
+
+// ---------- Simple procedural tile texture ----------
+function tileTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c9c4b6'; ctx.fillRect(0, 0, 512, 512);
+  for (let y = 0; y < 512; y += 32) for (let x = 0; x < 512; x += 32) {
+    const s = 185 + Math.random() * 40;
+    ctx.fillStyle = `rgb(${s},${s - 10},${s - 22})`;
+    ctx.fillRect(x + 1, y + 1, 30, 30);
+  }
+  for (let i = 0; i < 50; i++) {
+    ctx.strokeStyle = `rgba(20,18,15,${Math.random() * 0.15})`;
+    ctx.beginPath(); const x = Math.random() * 512;
+    ctx.moveTo(x, 0); ctx.lineTo(x + (Math.random() - 0.5) * 40, 512); ctx.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const wallTex = tileTexture(); wallTex.repeat.set(4, 2);
+
+// ---------- Station geometry ----------
+const LEN = 60;
+const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95 });
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a3a38, roughness: 0.9 });
+const metalMat = new THREE.MeshStandardMaterial({ color: 0x1c1e1f, roughness: 0.5, metalness: 0.8 });
+const yellowMat = new THREE.MeshStandardMaterial({ color: 0xC9A227, roughness: 0.7 });
+const trackMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.6, metalness: 0.6 });
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, LEN), floorMat);
+floor.rotation.x = -Math.PI / 2; floor.position.set(-1, 0, 0); floor.receiveShadow = true;
+scene.add(floor);
+
+const strip = new THREE.Mesh(new THREE.PlaneGeometry(0.6, LEN), yellowMat);
+strip.rotation.x = -Math.PI / 2; strip.position.set(3.2, 0.001, 0); scene.add(strip);
+
+const trackBed = new THREE.Mesh(new THREE.PlaneGeometry(6, LEN), trackMat);
+trackBed.rotation.x = -Math.PI / 2; trackBed.position.set(6.5, -0.6, 0); scene.add(trackBed);
+
+for (const rx of [5.2, 7.8]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, LEN), metalMat);
+  rail.position.set(rx, -0.5, 0); scene.add(rail);
+}
+
+const backWall = new THREE.Mesh(new THREE.PlaneGeometry(LEN, 6), wallMat);
+backWall.rotation.y = Math.PI / 2; backWall.position.set(-5, 3, 0); scene.add(backWall);
+
+const farWall = new THREE.Mesh(new THREE.PlaneGeometry(LEN, 6), wallMat);
+farWall.rotation.y = -Math.PI / 2; farWall.position.set(10, 3, 0); scene.add(farWall);
+
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(14, LEN), new THREE.MeshStandardMaterial({ color: 0x111213 }));
+ceiling.rotation.x = Math.PI / 2; ceiling.position.set(2, 5.6, 0); scene.add(ceiling);
+
+for (let z = -LEN / 2 + 3; z < LEN / 2; z += 5) {
+  const col = new THREE.Mesh(new THREE.BoxGeometry(1.1, 5.4, 1.1), wallMat);
+  col.position.set(0, 2.7, z); scene.add(col);
+}
+
+// ---------- Lights (flickering fluorescents) ----------
+scene.add(new THREE.AmbientLight(0x1a1c22, 0.45));
+const flickerLights = [];
+for (let z = -LEN / 2 + 3; z < LEN / 2; z += 5) {
+  const l = new THREE.PointLight(0xbfd9ff, 1.5, 9, 2);
+  l.position.set(1, 5.2, z); scene.add(l);
+  flickerLights.push({ l, seed: Math.random() * 100 });
+}
+
+// Flashlight (attached to camera)
+const flashlight = new THREE.SpotLight(0xfff2cc, 0, 15, Math.PI / 7, 0.4);
+flashlight.position.set(0, 0, 0);
+camera.add(flashlight, flashlight.target);
+flashlight.target.position.set(0, 0, -1);
+scene.add(camera);
+
+let flashOn = false;
+function toggleFlashlight() { flashOn = !flashOn; flashlight.intensity = flashOn ? 2.2 : 0; }
+
+// ---------- Task interactables ----------
+const taskDefs = [
+  { id: 'panel', label: 'Inspect electrical panel', pos: new THREE.Vector3(-4.4, 1.2, -20), done: false, color: 0x334455 },
+  { id: 'lights', label: 'Check platform lights',   pos: new THREE.Vector3(1, 1.2, 0),      done: false, color: 0x554433 },
+  { id: 'cctvfix', label: 'Check CCTV',             pos: new THREE.Vector3(-4.4, 1.2, 18),  done: false, color: 0x445533 },
+];
+const taskMeshes = [];
+taskDefs.forEach(t => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.15), new THREE.MeshStandardMaterial({ color: t.color, emissive: t.color, emissiveIntensity: 0.3 }));
+  m.position.copy(t.pos); m.userData.task = t; scene.add(m); taskMeshes.push(m);
+});
+
+function renderTasks() {
+  document.getElementById('tasks').innerHTML = taskDefs.map(t =>
+    `<div class="${t.done ? 'done' : ''}">${t.done ? '✓' : '○'} ${t.label}</div>`).join('');
+}
+
+const raycaster = new THREE.Raycaster();
+let nearestTask = null;
+function checkInteractPrompt() {
+  raycaster.set(camera.position, camera.getWorldDirection(new THREE.Vector3()));
+  const hits = raycaster.intersectObjects(taskMeshes).filter(h => h.distance < 3);
+  nearestTask = hits.length ? hits[0].object.userData.task : null;
+  document.getElementById('prompt').style.display = (nearestTask && !nearestTask.done) ? 'block' : 'none';
+}
+function tryInteract() {
+  if (nearestTask && !nearestTask.done) {
+    nearestTask.done = true;
+    renderTasks();
+    flashEventText(nearestTask.label.toUpperCase() + ' — DONE', 1500);
+  }
+}
+
+// ---------- The Passenger (reactive entity) ----------
+const figureMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1 });
+const passenger = new THREE.Group();
+const pBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 1.1, 4, 8), figureMat); pBody.position.y = 0.95;
+const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), figureMat); pHead.position.y = 1.75;
+passenger.add(pBody, pHead);
+passenger.visible = false;
+scene.add(passenger);
+
+let passengerTimer = 0, nextPassengerEvent = 8 + Math.random() * 10;
+function updatePassenger(dt) {
+  passengerTimer += dt;
+  if (passengerTimer > nextPassengerEvent) {
+    if (!passenger.visible) {
+      // place it far down the platform, roughly in view but distant
+      const z = camera.position.z - 18 - Math.random() * 10;
+      passenger.position.set(-3.6, 0, z);
+      passenger.visible = true;
+    } else {
+      passenger.visible = false;
+    }
+    passengerTimer = 0;
+    nextPassengerEvent = passenger.visible ? 2 + Math.random() * 2 : 10 + Math.random() * 14;
+  }
+  // if player looks directly at it for too long, it vanishes (SCP-style)
+  if (passenger.visible) {
+    const toP = passenger.position.clone().sub(camera.position).normalize();
+    const dot = toP.dot(camera.getWorldDirection(new THREE.Vector3()));
+    if (dot > 0.995) {
+      passenger.visible = false;
+      passengerTimer = 0;
+      nextPassengerEvent = 6 + Math.random() * 10;
+    }
+  }
+}
+
+// ---------- CCTV overlay ----------
+let cctvOpen = false;
+const cctvCam = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+cctvCam.position.set(1, 5, -LEN / 2 + 2);
+cctvCam.lookAt(1, 1, LEN / 2);
+function toggleCCTV() {
+  cctvOpen = !cctvOpen;
+  document.getElementById('cctv').style.display = cctvOpen ? 'block' : 'none';
+  if (cctvOpen) controls.unlock();
+}
+renderer.domElement.addEventListener('dblclick', () => {}); // placeholder for future camera switching
+
+// ---------- Clock / night progression ----------
+const game = { running: false, paused: false, gameMinutes: 23 * 60, phase2: false, eventFired: false };
+const GAME_MINUTES_PER_SECOND = 0.6; // ~ real 20 min => full night
+
+function formatClock(totalMin) {
+  totalMin = ((totalMin % (24 * 60)) + 24 * 60) % (24 * 60);
+  let h = Math.floor(totalMin / 60), m = Math.floor(totalMin % 60);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  let h12 = h % 12; if (h12 === 0) h12 = 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
+function flashEventText(text, duration = 3000) {
+  const el = document.getElementById('eventText');
+  el.textContent = text; el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, duration);
+}
+
+// ---------- 3:17 AM scripted event ----------
+const trainMat = new THREE.MeshStandardMaterial({ color: 0x151a1e, roughness: 0.6, metalness: 0.5 });
+const train = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 20), trainMat);
+train.position.set(6.5, 1, -60);
+scene.add(train);
+
+function trigger317() {
+  game.eventFired = true;
+  flickerLights.forEach(f => f.l.intensity = 0);
+  flashOn = true; flashlight.intensity = 2.2;
+  flashEventText('PLEASE REMAIN ON THE PLATFORM.', 4000);
+
+  let t = 0;
+  const clackInterval = setInterval(() => { /* hook a sound here if desired */ }, 350);
+  const anim = () => {
+    t += 0.16;
+    train.position.z = -60 + t * 20;
+    if (train.position.z < 6) requestAnimationFrame(anim);
+    else {
+      clearInterval(clackInterval);
+      setTimeout(() => {
+        flashEventText('', 100);
+        train.position.z = -60;
+        flickerLights.forEach(f => f.l.intensity = 1.5);
+        game.phase2 = true;
+        flashEventText('THE STATION NEVER CLOSED.', 3500);
+      }, 2500);
+    }
+  };
+  anim();
+}
+
+// ---------- Menu wiring ----------
+document.getElementById('btnNew').onclick = startShift;
+document.getElementById('btnContinue').onclick = startShift; // hook up save/load later
+document.getElementById('btnSettings').onclick = () => flashEventText('SETTINGS — COMING SOON', 1500);
+document.getElementById('btnCredits').onclick = () => flashEventText('MADE WITH THREE.JS', 2000);
+
+function startShift() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  renderTasks();
+  game.running = true;
+  controls.lock();
+}
+
+function togglePause() {
+  if (cctvOpen) return;
+  game.paused = !game.paused;
+  document.getElementById('pause').style.display = game.paused ? 'flex' : 'none';
+  if (game.paused) controls.unlock(); else controls.lock();
+}
+controls.addEventListener('unlock', () => { if (game.running && !cctvOpen) togglePauseIfNotAlready(); });
+function togglePauseIfNotAlready() {
+  if (!game.paused) { game.paused = true; document.getElementById('pause').style.display = 'flex'; }
+}
+document.getElementById('pause').addEventListener('click', () => { game.paused = false; document.getElementById('pause').style.display = 'none'; controls.lock(); });
+
+// ---------- Main loop ----------
+const clock3d = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock3d.getDelta();
+  const t = clock3d.getElapsedTime();
+
+  if (game.running && !game.paused && !cctvOpen) {
+    // movement
+    const speed = 3.2;
+    const dir = new THREE.Vector3();
+    if (move.f) dir.z -= 1; if (move.b) dir.z += 1;
+    if (move.l) dir.x -= 1; if (move.r) dir.x += 1;
+    dir.normalize();
+    controls.moveRight(dir.x * speed * dt);
+    controls.moveForward(-dir.z * speed * dt);
+    // clamp inside station bounds roughly
+    camera.position.x = Math.min(Math.max(camera.position.x, -4.6), 3.9);
+    camera.position.z = Math.min(Math.max(camera.position.z, -LEN / 2 + 1), LEN / 2 - 1);
+    camera.position.y = 1.7;
+
+    // flicker
+    flickerLights.forEach(({ l, seed }) => {
+      if (game.eventFired) return;
+      const fl = Math.sin(t * 25 + seed) * Math.sin(t * 3.1 + seed);
+      const dropout = Math.random() < 0.003 ? 0.05 : 1;
+      l.intensity = Math.max(0, 1.5 * (0.85 + 0.15 * fl)) * dropout;
+    });
+
+    updatePassenger(dt);
+    checkInteractPrompt();
+
+    // clock
+    game.gameMinutes += dt * GAME_MINUTES_PER_SECOND;
+    document.getElementById('clock').textContent = formatClock(game.gameMinutes);
+    if (!game.eventFired && (game.gameMinutes % (24 * 60)) >= 3 * 60 + 17) {
+      trigger317();
+    }
+    if (game.phase2 && (game.gameMinutes % (24 * 60)) >= 6 * 60) {
+      flashEventText('SHIFT OVER — YOU MADE IT TO 6:00 AM', 6000);
+      game.running = false;
+      controls.unlock();
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
 </script>
-
 </body>
 </html>
