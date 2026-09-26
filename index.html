@@ -129,7 +129,7 @@ scene.background = new THREE.Color(0x020202);
 scene.fog = new THREE.FogExp2(0x030405, 0.05);
 
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 1.7, 4);
+camera.position.set(1.8, 1.7, 10);
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -215,9 +215,18 @@ farWall.rotation.y = -Math.PI / 2; farWall.position.set(10, 3, 0); scene.add(far
 const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(14, LEN), new THREE.MeshStandardMaterial({ color: 0x111213 }));
 ceiling.rotation.x = Math.PI / 2; ceiling.position.set(2, 5.6, 0); scene.add(ceiling);
 
+const columnBoxes = [];
 for (let z = -LEN / 2 + 3; z < LEN / 2; z += 5) {
   const col = new THREE.Mesh(new THREE.BoxGeometry(1.1, 5.4, 1.1), wallMat);
   col.position.set(0, 2.7, z); scene.add(col);
+  columnBoxes.push(new THREE.Box3().setFromObject(col));
+}
+function collidesColumn(x, z, margin = 0.4) {
+  for (const b of columnBoxes) {
+    if (x > b.min.x - margin && x < b.max.x + margin &&
+        z > b.min.z - margin && z < b.max.z + margin) return true;
+  }
+  return false;
 }
 
 // ---------- Lights (flickering fluorescents) ----------
@@ -410,12 +419,18 @@ function animate() {
     if (move.f) dir.z -= 1; if (move.b) dir.z += 1;
     if (move.l) dir.x -= 1; if (move.r) dir.x += 1;
     dir.normalize();
+    const prevX = camera.position.x, prevZ = camera.position.z;
     controls.moveRight(dir.x * speed * dt);
     controls.moveForward(-dir.z * speed * dt);
     // clamp inside station bounds roughly
     camera.position.x = Math.min(Math.max(camera.position.x, -4.6), 3.9);
     camera.position.z = Math.min(Math.max(camera.position.z, -LEN / 2 + 1), LEN / 2 - 1);
     camera.position.y = 1.7;
+    // simple column collision: revert this frame's move if it lands inside a column
+    if (collidesColumn(camera.position.x, camera.position.z)) {
+      camera.position.x = prevX;
+      camera.position.z = prevZ;
+    }
 
     // flicker
     flickerLights.forEach(({ l, seed }) => {
